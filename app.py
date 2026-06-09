@@ -136,7 +136,9 @@ except Exception as e:
 st.markdown('<div class="main-title">Vancouver Real Estate & Climate Regression Analysis</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">An interactive portfolio showcase analyzing how location, building characteristics, and annual climate trends shape property valuations.</div>', unsafe_allow_html=True)
 
-# Sidebar for User Inputs
+# Sidebar for User Inputs (grouped with the pricing prediction)
+prediction_placeholder = st.sidebar.empty()
+
 st.sidebar.markdown("###  Property Predictor Sliders")
 st.sidebar.write("Adjust property attributes below to estimate its assessed value dynamically using OLS coefficients:")
 
@@ -171,6 +173,26 @@ ann_precip = st.sidebar.slider(
     step=10
 )
 
+# Calculate prediction dynamically based on slider values
+pred_val = (
+    coef["const"] 
+    + coef["distance_to_beach_km"] * dist_beach 
+    + coef["annual_precip_mm"] * ann_precip 
+    + coef["age_at_assessment"] * prop_age 
+    + coef["is_strata"] * is_strata
+)
+
+# Update the placeholder at the top of the sidebar with the prediction card
+prediction_placeholder.markdown(f"""
+<div class="prediction-card">
+    <div style="font-size: 0.85rem; opacity: 0.9;">Estimated Property Assessed Value</div>
+    <div class="prediction-value" style="font-size: 2.2rem;">${pred_val:,.0f} CAD</div>
+    <div style="margin-top: 5px; font-size: 0.7rem; opacity: 0.85;">
+        *Computed using real-world OLS coefficients on 4,300+ Vancouver properties.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
 **Model R-squared:** `{:.2f}%`
@@ -190,30 +212,10 @@ st.sidebar.info(
 # The chart filters have been moved directly inside the tabs to keep the sidebar clean.
 df_filtered = df.copy()
 
-# Layout: 2 Columns (Left: Predictions & Coefficients, Right: Charts)
+# Layout: 2 Columns (Left: Coefficients, Right: Charts)
 col_left, col_right = st.columns([1, 1.5])
 
 with col_left:
-    # 1. Prediction Output Card
-    # Y_pred = beta_0 + beta_1 * X_1 + beta_2 * X_2 + beta_3 * X_3 + beta_4 * X_4
-    pred_val = (
-        coef["const"] 
-        + coef["distance_to_beach_km"] * dist_beach 
-        + coef["annual_precip_mm"] * ann_precip 
-        + coef["age_at_assessment"] * prop_age 
-        + coef["is_strata"] * is_strata
-    )
-    
-    st.markdown(f"""
-    <div class="prediction-card">
-        <div> Estimated Property Assessed Value</div>
-        <div class="prediction-value">${pred_val:,.0f} CAD</div>
-        <div style="margin-top: 10px; font-size: 0.85rem; opacity: 0.85;">
-            *Computed using real-world OLS coefficients on 4,300+ Vancouver properties.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # 2. Coefficients List (Sleek cards)
     st.markdown("###  Model Coefficients (Impact Factors)")
     st.write("Each coefficient represents the average price change holding all other features constant:")
