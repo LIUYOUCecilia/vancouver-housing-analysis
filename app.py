@@ -134,7 +134,7 @@ dist_beach = st.sidebar.slider(
 )
 
 prop_age = st.sidebar.slider(
-    "⏳ Property Age (Years)", 
+    "Property Age (Years)", 
     min_value=int(df["age_at_assessment"].min()), 
     max_value=int(df["age_at_assessment"].max()), 
     value=15, 
