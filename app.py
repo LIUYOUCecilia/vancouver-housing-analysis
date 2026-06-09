@@ -207,49 +207,75 @@ col_left, col_right = st.columns([1, 1.5])
 
 with col_left:
     # 2. Coefficients List (Sleek cards)
-    st.markdown("###  Model Coefficients (Impact Factors)")
-    st.write("Each coefficient represents the average price change holding all other features constant:")
+    st.markdown("### 📊 Valuation Breakdown (Current Property)")
+    st.write("Dynamic impact of each property attribute on the estimated valuation:")
     
-    # Beach distance card
+    # Calculate individual components
+    val_const = coef['const']
+    val_beach = coef['distance_to_beach_km'] * dist_beach
+    val_age = coef['age_at_assessment'] * prop_age
+    val_strata = coef['is_strata'] * is_strata
+    val_precip = coef['annual_precip_mm'] * ann_precip
+    
+    # 1. Base Value
     st.markdown(f"""
     <div class="coefficient-card">
-        <div class="coefficient-title">Beach Proximity Penalty</div>
-        <div class="coefficient-value">-${abs(coef['distance_to_beach_km']):,.0f} CAD</div>
+        <div class="coefficient-title">Base Baseline Value</div>
+        <div class="coefficient-value" style="color: #10b981;">+${val_const:,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Per kilometer of distance away from the nearest beach.
+            Baseline market starting value for properties in Vancouver.
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Age card
+    # 2. Beach Proximity
+    sign_beach = "+" if val_beach >= 0 else "-"
+    color_beach = "#10b981" if val_beach >= 0 else "#0f172a"
     st.markdown(f"""
     <div class="coefficient-card">
-        <div class="coefficient-title">Annual Building Depreciation</div>
-        <div class="coefficient-value">-${abs(coef['age_at_assessment']):,.0f} CAD</div>
+        <div class="coefficient-title">Beach Proximity Impact ({dist_beach:.1f} km)</div>
+        <div class="coefficient-value" style="color: {color_beach};">{sign_beach}${abs(val_beach):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            For each year of building age at the time of assessment.
+            Adjusted at -${abs(coef['distance_to_beach_km']):,.0f} CAD per km away from beach.
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Property Type card
+    # 3. Building Age
+    sign_age = "+" if val_age >= 0 else "-"
+    color_age = "#10b981" if val_age >= 0 else "#0f172a"
     st.markdown(f"""
     <div class="coefficient-card">
-        <div class="coefficient-title">Condo/Townhouse Price Adjustment</div>
-        <div class="coefficient-value">-${abs(coef['is_strata']):,.0f} CAD</div>
+        <div class="coefficient-title">Building Age Depreciation ({prop_age} Years)</div>
+        <div class="coefficient-value" style="color: {color_age};">{sign_age}${abs(val_age):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Average valuation change for Condos and Townhouses compared to Single-Family detached homes.
+            Depreciated at -${abs(coef['age_at_assessment']):,.0f} CAD per year of building age.
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-    # Climate card
+    
+    # 4. Property Type
+    sign_strata = "+" if val_strata >= 0 else "-"
+    color_strata = "#10b981" if val_strata >= 0 else "#0f172a"
     st.markdown(f"""
     <div class="coefficient-card">
-        <div class="coefficient-title">Climate / Precipitation Correlation</div>
-        <div class="coefficient-value">-${abs(coef['annual_precip_mm']):,.2f} CAD</div>
+        <div class="coefficient-title">Property Type Adjustment ({prop_type})</div>
+        <div class="coefficient-value" style="color: {color_strata};">{sign_strata}${abs(val_strata):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Per millimeter of annual precipitation in the preceding year.
+            Average flat adjustment of -${abs(coef['is_strata']):,.0f} CAD for Condo/Townhouse units.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 5. Climate / Precipitation
+    sign_precip = "+" if val_precip >= 0 else "-"
+    color_precip = "#10b981" if val_precip >= 0 else "#0f172a"
+    st.markdown(f"""
+    <div class="coefficient-card">
+        <div class="coefficient-title">Precipitation Impact ({ann_precip} mm)</div>
+        <div class="coefficient-value" style="color: {color_precip};">{sign_precip}${abs(val_precip):,.0f} CAD</div>
+        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
+            Correlated at -${abs(coef['annual_precip_mm']):,.2f} CAD per mm of annual precipitation.
         </div>
     </div>
     """, unsafe_allow_html=True)
