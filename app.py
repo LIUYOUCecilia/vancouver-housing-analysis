@@ -58,7 +58,6 @@ st.markdown("""
     
     .coefficient-card {
         background-color: #f8fafc;
-        border-left: 5px solid #2563eb;
         padding: 1.2rem;
         border-radius: 8px;
         margin-bottom: 1rem;
@@ -191,7 +190,7 @@ with col_left:
     
     # Beach distance card
     st.markdown(f"""
-    <div class="coefficient-card" style="border-left-color: #ef4444;">
+    <div class="coefficient-card">
         <div class="coefficient-title">Beach Proximity Penalty</div>
         <div class="coefficient-value">-${abs(coef['distance_to_beach_km']):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
@@ -202,7 +201,7 @@ with col_left:
     
     # Age card
     st.markdown(f"""
-    <div class="coefficient-card" style="border-left-color: #f59e0b;">
+    <div class="coefficient-card">
         <div class="coefficient-title">Annual Building Depreciation</div>
         <div class="coefficient-value">-${abs(coef['age_at_assessment']):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
@@ -213,7 +212,7 @@ with col_left:
     
     # Property Type card
     st.markdown(f"""
-    <div class="coefficient-card" style="border-left-color: #8b5cf6;">
+    <div class="coefficient-card">
         <div class="coefficient-title">Property Type Discount (Strata)</div>
         <div class="coefficient-value">-${abs(coef['is_strata']):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
@@ -224,7 +223,7 @@ with col_left:
 
     # Climate card
     st.markdown(f"""
-    <div class="coefficient-card" style="border-left-color: #3b82f6;">
+    <div class="coefficient-card">
         <div class="coefficient-title">Climate / Precipitation Correlation</div>
         <div class="coefficient-value">-${abs(coef['annual_precip_mm']):,.2f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">

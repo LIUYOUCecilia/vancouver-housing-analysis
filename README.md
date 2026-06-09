@@ -88,3 +88,17 @@ Run the interactive dashboard locally:
 streamlit run app.py
 ```
 The dashboard will open automatically in your browser at `http://localhost:8501`.
+
+---
+
+## Deploy to Streamlit Community Cloud (Live Online App)
+
+You can deploy this interactive dashboard to the web for free:
+1. Go to [Streamlit Share](https://share.streamlit.io/) and log in with your GitHub account.
+2. Click **New app**.
+3. Select your repository: `vancouver-housing-analysis`.
+4. Set **Main file path** to `app.py`.
+5. Click **Deploy!**
+
+Once deployed, Streamlit will provide a public URL. You can add this live URL to the "About" website link on your GitHub repository page so visitors can interact with it instantly.
+
