@@ -112,6 +112,13 @@ def load_and_model_data():
 try:
     df, model = load_and_model_data()
     coef = model.params
+    # Add consumer-friendly columns for visualization and legends
+    df['Property Type'] = df['is_strata'].map({1: "Condo/Townhouse", 0: "Single-Family Home"})
+    df['Age Group'] = pd.cut(
+        df['age_at_assessment'],
+        bins=[-1, 10, 30, 60, 999],
+        labels=['New (< 10 Years)', 'Modern (10-30 Years)', 'Established (30-60 Years)', 'Historic (60+ Years)']
+    )
 except Exception as e:
     st.error(f"Error loading model data: {e}")
     st.stop()
@@ -142,10 +149,10 @@ prop_age = st.sidebar.slider(
 )
 
 prop_type = st.sidebar.selectbox(
-    " Property Class Type",
-    options=["Strata (Condo / Townhouse)", "Land-based (Single-Family Dwelling)"]
+    "Property Type",
+    options=["Condo / Townhouse", "Single-Family Home"]
 )
-is_strata = 1 if "Strata" in prop_type else 0
+is_strata = 1 if "Condo" in prop_type else 0
 
 ann_precip = st.sidebar.slider(
     " Annual Precipitation (mm)", 
@@ -159,6 +166,30 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("""
 **Model R-squared:** `{:.2f}%`
 """.format(model.rsquared * 100))
+
+# Informative guide explaining Strata vs Single-Family Home
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💡 Real Estate Glossary")
+st.sidebar.info(
+    "**What is Strata?**\n\n"
+    "In Canada, **Strata** represents properties like **Condos and Townhouses** "
+    "where owners share ownership of common spaces (lobby, elevators, land) "
+    "under a strata corporation.\n\n"
+    "Non-strata properties are typically independent **Single-Family Homes**."
+)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔍 Chart Data Filters")
+st.sidebar.write("Filter the properties displayed on the charts by age group:")
+
+selected_age_groups = st.sidebar.multiselect(
+    "Select Age Groups",
+    options=['New (< 10 Years)', 'Modern (10-30 Years)', 'Established (30-60 Years)', 'Historic (60+ Years)'],
+    default=['New (< 10 Years)', 'Modern (10-30 Years)'] # Don't show all ages at once by default!
+)
+
+# Apply filter to DataFrame for plotting
+df_filtered = df[df['Age Group'].isin(selected_age_groups)]
 
 # Layout: 2 Columns (Left: Predictions & Coefficients, Right: Charts)
 col_left, col_right = st.columns([1, 1.5])
@@ -213,10 +244,10 @@ with col_left:
     # Property Type card
     st.markdown(f"""
     <div class="coefficient-card">
-        <div class="coefficient-title">Property Type Discount (Strata)</div>
+        <div class="coefficient-title">Condo/Townhouse Price Adjustment</div>
         <div class="coefficient-value">-${abs(coef['is_strata']):,.0f} CAD</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Average discount for Strata units compared to land-based single-family estates.
+            Average valuation change for Condos and Townhouses compared to Single-Family detached homes.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -238,7 +269,7 @@ with col_right:
     
     with tab1:
         st.markdown("#### Assessed Valuation vs. Distance to Beach")
-        st.write("Scatter plot of properties colored by age. The red line represents the fitted OLS line at average values of other features.")
+        st.write("Scatter plot of properties colored by age group. **Click on the legend items on the right** to toggle individual age groups. The red line represents the fitted OLS line at average values of other features.")
         
         # Calculate predicted OLS line values
         mean_precip = df["annual_precip_mm"].mean()
@@ -254,19 +285,28 @@ with col_right:
             + coef["is_strata"] * mean_strata
         )
         
+        # Custom color palette matching premium aesthetics
+        color_map = {
+            'New (< 10 Years)': '#10b981',      # Emerald Green
+            'Modern (10-30 Years)': '#3b82f6',   # Royal Blue
+            'Established (30-60 Years)': '#8b5cf6', # Violet/Purple
+            'Historic (60+ Years)': '#ef4444'    # Red
+        }
+        
         fig1 = px.scatter(
-            df,
+            df_filtered,
             x="distance_to_beach_km",
             y="price_cad",
-            color="age_at_assessment",
-            color_continuous_scale="viridis_r",
+            color="Age Group",
+            color_discrete_map=color_map,
+            category_orders={'Age Group': ['New (< 10 Years)', 'Modern (10-30 Years)', 'Established (30-60 Years)', 'Historic (60+ Years)']},
             labels={
                 "distance_to_beach_km": "Distance to Beach (km)",
                 "price_cad": "Assessed Value (CAD)",
-                "age_at_assessment": "Property Age (Years)"
+                "Age Group": "Property Age Group"
             },
-            hover_data=["neighbourhood_name", "tax_assessment_year"],
-            opacity=0.5
+            hover_data=["age_at_assessment", "neighbourhood_name", "tax_assessment_year"],
+            opacity=0.6
         )
         
         # Add the regression line
@@ -275,48 +315,52 @@ with col_right:
             y=y_line, 
             mode='lines', 
             name='OLS Fitted Regression', 
-            line=dict(color='#ef4444', width=3)
+            line=dict(color='#dc2626', width=3)
         ))
         
         fig1.update_layout(
             margin=dict(l=0, r=0, t=10, b=0),
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
         )
         st.plotly_chart(fig1, use_container_width=True)
         
     with tab2:
         st.markdown("#### 3D View of Beach Proximity, Age, and Property Value")
-        st.write("A 3D scatter plot visualizing property values across the two major spatial/structural attributes.")
+        st.write("A 3D scatter plot visualizing property values across building age and beach distance. **Click on the legend items on the right** to toggle Condo/Townhouse vs. Single-Family Home.")
         
         # Subsample to keep 3D plot highly responsive
-        df_sub = df.sample(min(1500, len(df)), random_state=42)
+        df_sub = df_filtered.sample(min(1500, len(df_filtered)), random_state=42) if len(df_filtered) > 0 else df_filtered
         
-        fig2 = px.scatter_3d(
-            df_sub,
-            x="distance_to_beach_km",
-            y="age_at_assessment",
-            z="price_cad",
-            color="is_strata",
-            color_discrete_map={0: "#f43f5e", 1: "#10b981"},
-            labels={
-                "distance_to_beach_km": "Beach Dist (km)",
-                "age_at_assessment": "Building Age",
-                "price_cad": "Valuation (CAD)",
-                "is_strata": "Is Strata (Condo)"
-            },
-            hover_data=["neighbourhood_name"],
-            opacity=0.7
-        )
-        
-        fig2.update_layout(
-            margin=dict(l=0, r=0, t=0, b=0),
-            scene=dict(
-                xaxis_title='Beach Distance (km)',
-                yaxis_title='Building Age (years)',
-                zaxis_title='Assessed Value (CAD)'
+        if not df_sub.empty:
+            fig2 = px.scatter_3d(
+                df_sub,
+                x="distance_to_beach_km",
+                y="age_at_assessment",
+                z="price_cad",
+                color="Property Type",
+                color_discrete_map={"Condo/Townhouse": "#10b981", "Single-Family Home": "#f43f5e"},
+                labels={
+                    "distance_to_beach_km": "Beach Dist (km)",
+                    "age_at_assessment": "Building Age",
+                    "price_cad": "Valuation (CAD)",
+                    "Property Type": "Property Type"
+                },
+                hover_data=["neighbourhood_name"],
+                opacity=0.7
             )
-        )
-        st.plotly_chart(fig2, use_container_width=True)
+            
+            fig2.update_layout(
+                margin=dict(l=0, r=0, t=0, b=0),
+                scene=dict(
+                    xaxis_title='Beach Distance (km)',
+                    yaxis_title='Building Age (years)',
+                    zaxis_title='Assessed Value (CAD)'
+                ),
+                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.warning("No data matches the selected age groups filter. Adjust the filter selection in the sidebar.")
         
     with tab3:
         st.markdown("#### Academic Diagnostic Summary & Residual Checks")
