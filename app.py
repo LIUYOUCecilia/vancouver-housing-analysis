@@ -19,6 +19,14 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;600&display=swap');
     
+    /* Compress default Streamlit margins and padding */
+    .block-container {
+        padding-top: 1.2rem !important;
+        padding-bottom: 0.5rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }
+    
     html, body, [class*="css"] {
         font-family: 'Outfit', sans-serif;
     }
@@ -30,37 +38,37 @@ st.markdown("""
         background: linear-gradient(135deg, #2563eb, #3b82f6, #10b981);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.1rem;
     }
     
     .subtitle {
         font-size: 1.1rem;
         color: #64748b;
-        margin-bottom: 2rem;
+        margin-bottom: 0.8rem;
     }
     
     .prediction-card {
         background: linear-gradient(135deg, #1e3a8a, #3b82f6);
         color: white;
-        padding: 1.8rem;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
-        margin-bottom: 1.5rem;
+        padding: 1rem 1.2rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.4);
+        margin-bottom: 0.6rem;
     }
     
     .prediction-value {
         font-family: 'Space Grotesk', sans-serif;
         font-size: 3rem;
         font-weight: 800;
-        margin-top: 0.5rem;
+        margin-top: 0.2rem;
         text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     
     .coefficient-card {
         background-color: #f8fafc;
-        padding: 1.2rem;
+        padding: 0.6rem 0.8rem;
         border-radius: 8px;
-        margin-bottom: 1rem;
+        margin-bottom: 0.4rem;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
@@ -76,15 +84,16 @@ st.markdown("""
         font-size: 1.6rem;
         font-weight: 700;
         color: #0f172a;
-        margin-top: 0.2rem;
+        margin-top: 0.1rem;
     }
     
     .diagnostic-card {
         background-color: #ffffff;
         border: 1px solid #e2e8f0;
-        padding: 1.2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        padding: 0.8rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 0.5rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -314,6 +323,7 @@ with col_right:
         ))
         
         fig1.update_layout(
+            height=360,
             margin=dict(l=0, r=0, t=10, b=0),
             coloraxis_colorbar=dict(
                 title="Property Age (Years)",
@@ -374,6 +384,7 @@ with col_right:
             )
             
             fig2.update_layout(
+                height=360,
                 margin=dict(l=0, r=0, t=0, b=0),
                 scene=dict(
                     xaxis_title='Beach Distance (km)',
@@ -450,6 +461,7 @@ with col_right:
         )
         fig3.add_hline(y=0, line_dash="dash", line_color="#ef4444", line_width=2)
         fig3.update_layout(
+            height=300,
             title="Residuals vs. Fitted Values (Heteroscedasticity Visual Check)",
             margin=dict(l=0, r=0, t=30, b=0)
         )
