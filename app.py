@@ -9,7 +9,7 @@ import os
 # Set page config for a premium wide-screen look
 st.set_page_config(
     page_title="Vancouver Real Estate & Climate Regression Dashboard",
-    page_icon="🏡",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -122,12 +122,12 @@ st.markdown('<div class="main-title">Vancouver Real Estate & Climate Regression 
 st.markdown('<div class="subtitle">An interactive portfolio showcase analyzing how location, building characteristics, and annual climate trends shape property valuations.</div>', unsafe_allow_html=True)
 
 # Sidebar for User Inputs
-st.sidebar.markdown("### 🛠️ Property Predictor Sliders")
+st.sidebar.markdown("###  Property Predictor Sliders")
 st.sidebar.write("Adjust property attributes below to estimate its assessed value dynamically using OLS coefficients:")
 
 # Set up sliders based on real dataset ranges
 dist_beach = st.sidebar.slider(
-    "📏 Distance to Beach (km)", 
+    " Distance to Beach (km)", 
     min_value=float(df["distance_to_beach_km"].min()), 
     max_value=float(df["distance_to_beach_km"].max()), 
     value=2.0, 
@@ -143,13 +143,13 @@ prop_age = st.sidebar.slider(
 )
 
 prop_type = st.sidebar.selectbox(
-    "🏢 Property Class Type",
+    " Property Class Type",
     options=["Strata (Condo / Townhouse)", "Land-based (Single-Family Dwelling)"]
 )
 is_strata = 1 if "Strata" in prop_type else 0
 
 ann_precip = st.sidebar.slider(
-    "🌧️ Annual Precipitation (mm)", 
+    " Annual Precipitation (mm)", 
     min_value=int(df["annual_precip_mm"].min()), 
     max_value=int(df["annual_precip_mm"].max()), 
     value=1400, 
@@ -177,7 +177,7 @@ with col_left:
     
     st.markdown(f"""
     <div class="prediction-card">
-        <div>🏡 Estimated Property Assessed Value</div>
+        <div> Estimated Property Assessed Value</div>
         <div class="prediction-value">${pred_val:,.0f} CAD</div>
         <div style="margin-top: 10px; font-size: 0.85rem; opacity: 0.85;">
             *Computed using real-world OLS coefficients on 4,300+ Vancouver properties.
@@ -186,7 +186,7 @@ with col_left:
     """, unsafe_allow_html=True)
     
     # 2. Coefficients List (Sleek cards)
-    st.markdown("### 📊 Model Coefficients (Impact Factors)")
+    st.markdown("###  Model Coefficients (Impact Factors)")
     st.write("Each coefficient represents the average price change holding all other features constant:")
     
     # Beach distance card
@@ -235,7 +235,7 @@ with col_left:
 
 with col_right:
     # 3. Interactive Charts Tab
-    tab1, tab2, tab3 = st.tabs(["📉 Price vs. Beach Proximity", "🧊 3D Feature Space Plane", "🛠️ Model Diagnostics"])
+    tab1, tab2, tab3 = st.tabs([" Price vs. Beach Proximity", " 3D Feature Space Plane", " Model Diagnostics"])
     
     with tab1:
         st.markdown("#### Assessed Valuation vs. Distance to Beach")
@@ -327,7 +327,7 @@ with col_right:
         with diag_col1:
             st.markdown("""
             <div class="diagnostic-card">
-                <h5 style="color: #0f172a; margin-top:0;">⚠️ Multicollinearity (VIF)</h5>
+                <h5 style="color: #0f172a; margin-top:0;"> Multicollinearity (VIF)</h5>
                 <p style="font-size: 0.85rem; color: #64748b;">
                     VIF measures how much a feature's coefficient variance is inflated by collinearity. 
                     A VIF &gt; 10 represents high collinearity.
@@ -348,7 +348,7 @@ with col_right:
         with diag_col2:
             st.markdown("""
             <div class="diagnostic-card">
-                <h5 style="color: #0f172a; margin-top:0;">⚡ Heteroscedasticity (Breusch-Pagan)</h5>
+                <h5 style="color: #0f172a; margin-top:0;"> Heteroscedasticity (Breusch-Pagan)</h5>
                 <p style="font-size: 0.85rem; color: #64748b;">
                     Breusch-Pagan tests if model residuals have a constant variance (homoscedasticity).
                 </p>

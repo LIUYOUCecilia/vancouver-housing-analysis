@@ -73,9 +73,9 @@ def validate_normal_equation(project_dir):
     # Assert check
     try:
         np.testing.assert_allclose(beta_hat, sm_coefficients, rtol=1e-5, atol=1e-5)
-        print("\n✅ SUCCESS: NumPy Normal Equation calculation matches Statsmodels benchmark perfectly!")
+        print("\n SUCCESS: NumPy Normal Equation calculation matches Statsmodels benchmark perfectly!")
     except AssertionError as e:
-        print("\n❌ FAILURE: Coefficients do not match. Check calculations.")
+        print("\n FAILURE: Coefficients do not match. Check calculations.")
         print(e)
         
     return beta_hat

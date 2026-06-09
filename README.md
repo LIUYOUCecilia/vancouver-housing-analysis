@@ -1,4 +1,4 @@
-# Vancouver Real Estate & Climate Regression Analysis (Dual-Path) 🏡🌧️
+# Vancouver Real Estate & Climate Regression Analysis (Dual-Path)
 
 This repository contains an advanced data science project implementing a **Dual-Path** (双线并行) optimization plan for real estate valuation and climate regression analysis. The project bridges academic econometrics and interactive product development by:
 
@@ -7,7 +7,7 @@ This repository contains an advanced data science project implementing a **Dual-
 
 ---
 
-## 🎯 Key Project Components
+## Key Project Components
 
 1. **Real Data Harvester (`fetch_real_data.py`)**: 
    - Downloads daily temperature and precipitation records from 2015-2024 via the `meteostat` API.
@@ -28,7 +28,7 @@ This repository contains an advanced data science project implementing a **Dual-
 
 ---
 
-## 📊 Regression Model Results
+## Regression Model Results
 
 The OLS model was fitted on **4,326 cleaned records** (with 270 outliers filtered out by the 1.5 * IQR rule). It yields an **Adjusted $R^2$ of 0.583**, indicating that **58.3% of the variance** in Vancouver property values is explained by the model.
 
@@ -42,13 +42,13 @@ The OLS model was fitted on **4,326 cleaned records** (with 270 outliers filtere
 | **Building Age ($\beta_3$)** | -$6,047.41 | -14.86 | < 0.001 | Property depreciates by **$6,047.41 CAD** per year of age. (Highly Significant) |
 | **Is Strata ($\beta_4$)** | -$1,878,340.86 | -69.44 | < 0.001 | Strata units (condos/townhouses) are assessed **$1.88M CAD** lower than single-family land estates. (Highly Significant) |
 
-### 🛠️ Academic Diagnostics & Discussions
+### Academic Diagnostics & Discussions
 * **Multicollinearity (VIF)**: The VIF for `annual_precip_mm` is **16.03** (exceeding the warning threshold of 10). This collinearity is a natural result of pooling property-level micro data with annual-level macro climate observations. Standard errors are inflated but OLS coefficients remain unbiased.
 * **Heteroscedasticity (Breusch-Pagan)**: The BP test rejects homoscedasticity ($LM = 160.09, p < 0.001$). This is typical in housing markets where residual variance scales with absolute property value. Standard errors can be adjusted using White's heteroscedasticity-robust covariance matrix (HC1/HC3).
 
 ---
 
-## 🧮 Normal Equation Validation
+## Normal Equation Validation
 
 Using NumPy, we validated the analytical solution of OLS:
 
@@ -57,11 +57,11 @@ $$\hat{\beta} = (X^T X)^{-1} X^T Y$$
 The manual solver matches `statsmodels` parameters perfectly:
 * **NumPy Solver**: `[8268302.70830, -79328.86478, -4771.87070, -6047.41262, -1878340.86005]`
 * **Statsmodels**: `[8268302.70830, -79328.86478, -4771.87070, -6047.41262, -1878340.86005]`
-* **Status**: ✅ **Verified Perfect Match (Difference < 1e-10)**
+* **Status**:  **Verified Perfect Match (Difference < 1e-10)**
 
 ---
 
-## 🚀 How to Run the Pipeline & App
+## How to Run the Pipeline & App
 
 ### 1. Prerequisites
 Install dependencies listed in `requirements.txt`:
