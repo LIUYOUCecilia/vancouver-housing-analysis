@@ -138,5 +138,5 @@ def run_regression_analysis(project_dir):
     return results
 
 if __name__ == "__main__":
-    project_dir = "/Users/liutianyou/Desktop/lty暑期探索/vancouver-housing-analysis"
+    project_dir = os.path.dirname(os.path.abspath(__file__))
     run_regression_analysis(project_dir)

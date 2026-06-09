@@ -131,4 +131,5 @@ def generate_vancouver_datasets(output_dir):
     print(f"Housing transaction dataset saved to {housing_path} ({len(df_housing)} records)")
 
 if __name__ == "__main__":
-    generate_vancouver_datasets("/Users/liutianyou/Desktop/lty暑期探索/vancouver-housing-analysis")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    generate_vancouver_datasets(current_dir)

@@ -57,5 +57,5 @@ def clean_and_merge_data(project_dir):
     return df_cleaned, outliers
 
 if __name__ == "__main__":
-    project_dir = "/Users/liutianyou/Desktop/lty暑期探索/vancouver-housing-analysis"
+    project_dir = os.path.dirname(os.path.abspath(__file__))
     clean_and_merge_data(project_dir)
