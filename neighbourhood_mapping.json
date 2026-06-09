@@ -1,0 +1,182 @@
+{
+    "017": {
+        "neighbourhood_name": "Sunset",
+        "latitude": 49.21875615053907,
+        "longitude": -123.09203800098149,
+        "distance_to_beach_km": 7.52
+    },
+    "023": {
+        "neighbourhood_name": "Renfrew-Collingwood",
+        "latitude": 49.247342733638504,
+        "longitude": -123.040166464563,
+        "distance_to_beach_km": 7.85
+    },
+    "026": {
+        "neighbourhood_name": "Downtown",
+        "latitude": 49.28074707013743,
+        "longitude": -123.11656700827415,
+        "distance_to_beach_km": 1.43
+    },
+    "001": {
+        "neighbourhood_name": "West Point Grey",
+        "latitude": 49.268401210185914,
+        "longitude": -123.20346748255886,
+        "distance_to_beach_km": 1.05
+    },
+    "028": {
+        "neighbourhood_name": "Downtown",
+        "latitude": 49.28074707013743,
+        "longitude": -123.11656700827415,
+        "distance_to_beach_km": 1.43
+    },
+    "009": {
+        "neighbourhood_name": "Riley Park",
+        "latitude": 49.24476647864864,
+        "longitude": -123.10314680625231,
+        "distance_to_beach_km": 4.58
+    },
+    "016": {
+        "neighbourhood_name": "Kensington-Cedar Cottage",
+        "latitude": 49.246686446286056,
+        "longitude": -123.07288459215947,
+        "distance_to_beach_km": 5.89
+    },
+    "030": {
+        "neighbourhood_name": "Downtown",
+        "latitude": 49.28074707013743,
+        "longitude": -123.11656700827415,
+        "distance_to_beach_km": 1.43
+    },
+    "004": {
+        "neighbourhood_name": "Arbutus Ridge",
+        "latitude": 49.24680490982789,
+        "longitude": -123.16166923820482,
+        "distance_to_beach_km": 3.05
+    },
+    "005": {
+        "neighbourhood_name": "Arbutus Ridge",
+        "latitude": 49.24680490982789,
+        "longitude": -123.16166923820482,
+        "distance_to_beach_km": 3.05
+    },
+    "021": {
+        "neighbourhood_name": "Hastings-Sunrise",
+        "latitude": 49.27793405209019,
+        "longitude": -123.04026992328848,
+        "distance_to_beach_km": 6.96
+    },
+    "020": {
+        "neighbourhood_name": "Hastings-Sunrise",
+        "latitude": 49.27793405209019,
+        "longitude": -123.04026992328848,
+        "distance_to_beach_km": 6.96
+    },
+    "003": {
+        "neighbourhood_name": "Dunbar-Southlands",
+        "latitude": 49.23796190534427,
+        "longitude": -123.18954680338996,
+        "distance_to_beach_km": 3.76
+    },
+    "027": {
+        "neighbourhood_name": "West End",
+        "latitude": 49.285011188472005,
+        "longitude": -123.13543765302629,
+        "distance_to_beach_km": 0.57
+    },
+    "029": {
+        "neighbourhood_name": "Downtown",
+        "latitude": 49.28074707013743,
+        "longitude": -123.11656700827415,
+        "distance_to_beach_km": 1.43
+    },
+    "007": {
+        "neighbourhood_name": "Fairview",
+        "latitude": 49.26454048616976,
+        "longitude": -123.1310488653851,
+        "distance_to_beach_km": 1.75
+    },
+    "014": {
+        "neighbourhood_name": "Grandview-Woodland",
+        "latitude": 49.27643960930463,
+        "longitude": -123.06672822103268,
+        "distance_to_beach_km": 5.05
+    },
+    "013": {
+        "neighbourhood_name": "Mount Pleasant",
+        "latitude": 49.26306524972865,
+        "longitude": -123.09851312036905,
+        "distance_to_beach_km": 3.31
+    },
+    "002": {
+        "neighbourhood_name": "Kitsilano",
+        "latitude": 49.26753984848691,
+        "longitude": -123.16329474017252,
+        "distance_to_beach_km": 0.92
+    },
+    "024": {
+        "neighbourhood_name": "Victoria-Fraserview",
+        "latitude": 49.22001194005767,
+        "longitude": -123.06413471832595,
+        "distance_to_beach_km": 8.47
+    },
+    "012": {
+        "neighbourhood_name": "Marpole",
+        "latitude": 49.21020746567156,
+        "longitude": -123.1283816596551,
+        "distance_to_beach_km": 7.34
+    },
+    "015": {
+        "neighbourhood_name": "Kensington-Cedar Cottage",
+        "latitude": 49.246686446286056,
+        "longitude": -123.07288459215947,
+        "distance_to_beach_km": 5.89
+    },
+    "010": {
+        "neighbourhood_name": "Kerrisdale",
+        "latitude": 49.22365548461882,
+        "longitude": -123.15957618168902,
+        "distance_to_beach_km": 5.6
+    },
+    "011": {
+        "neighbourhood_name": "Oakridge",
+        "latitude": 49.226403196402856,
+        "longitude": -123.12302460370566,
+        "distance_to_beach_km": 5.77
+    },
+    "025": {
+        "neighbourhood_name": "Killarney",
+        "latitude": 49.21702167079743,
+        "longitude": -123.03764702895802,
+        "distance_to_beach_km": 10.0
+    },
+    "018": {
+        "neighbourhood_name": "Killarney",
+        "latitude": 49.21702167079743,
+        "longitude": -123.03764702895802,
+        "distance_to_beach_km": 10.0
+    },
+    "006": {
+        "neighbourhood_name": "Kerrisdale",
+        "latitude": 49.22365548461882,
+        "longitude": -123.15957618168902,
+        "distance_to_beach_km": 5.6
+    },
+    "008": {
+        "neighbourhood_name": "Shaughnessy",
+        "latitude": 49.24568097615458,
+        "longitude": -123.13976016672807,
+        "distance_to_beach_km": 3.33
+    },
+    "019": {
+        "neighbourhood_name": "Kensington-Cedar Cottage",
+        "latitude": 49.246686446286056,
+        "longitude": -123.07288459215947,
+        "distance_to_beach_km": 5.89
+    },
+    "022": {
+        "neighbourhood_name": "Renfrew-Collingwood",
+        "latitude": 49.247342733638504,
+        "longitude": -123.040166464563,
+        "distance_to_beach_km": 7.85
+    }
+}

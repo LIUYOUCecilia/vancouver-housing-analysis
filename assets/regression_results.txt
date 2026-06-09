@@ -1,27 +1,51 @@
+================================================================================
+OLS MULTIPLE LINEAR REGRESSION SUMMARY RESULTS
+================================================================================
+
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:              price_cad   R-squared:                       0.820
-Model:                            OLS   Adj. R-squared:                  0.819
-Method:                 Least Squares   F-statistic:                     1804.
+Dep. Variable:              price_cad   R-squared:                       0.583
+Model:                            OLS   Adj. R-squared:                  0.583
+Method:                 Least Squares   F-statistic:                     1510.
 Date:                Tue, 09 Jun 2026   Prob (F-statistic):               0.00
-Time:                        10:27:27   Log-Likelihood:                -16097.
-No. Observations:                1195   AIC:                         3.220e+04
-Df Residuals:                    1191   BIC:                         3.222e+04
-Df Model:                           3                                         
+Time:                        16:42:22   Log-Likelihood:                -63929.
+No. Observations:                4326   AIC:                         1.279e+05
+Df Residuals:                    4321   BIC:                         1.279e+05
+Df Model:                           4                                         
 Covariance Type:            nonrobust                                         
 ========================================================================================
                            coef    std err          t      P>|t|      [0.025      0.975]
 ----------------------------------------------------------------------------------------
-const                 6.553e+05   1.77e+04     37.052      0.000    6.21e+05     6.9e+05
-distance_to_beach_km -6.884e+04   1158.916    -59.396      0.000   -7.11e+04   -6.66e+04
-precipitation_mm       -73.6427     76.693     -0.960      0.337    -224.110      76.825
-bedrooms              1.931e+05   4414.896     43.749      0.000    1.84e+05    2.02e+05
+const                 8.268e+06   5.95e+05     13.898      0.000     7.1e+06    9.43e+06
+distance_to_beach_km -7.933e+04   3943.385    -20.117      0.000   -8.71e+04   -7.16e+04
+annual_precip_mm     -4771.8707    564.364     -8.455      0.000   -5878.313   -3665.428
+age_at_assessment    -6047.4126    407.069    -14.856      0.000   -6845.478   -5249.348
+is_strata            -1.878e+06    2.7e+04    -69.443      0.000   -1.93e+06   -1.83e+06
 ==============================================================================
-Omnibus:                       65.439   Durbin-Watson:                   1.963
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):              236.963
-Skew:                           0.070   Prob(JB):                     3.50e-52
-Kurtosis:                       5.177   Cond. No.                         553.
+Omnibus:                      729.640   Durbin-Watson:                   1.523
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):             1530.588
+Skew:                           0.998   Prob(JB):                         0.00
+Kurtosis:                       5.123   Cond. No.                     6.50e+04
 ==============================================================================
 
 Notes:
 [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 6.5e+04. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+================================================================================
+MODEL DIAGNOSTICS
+================================================================================
+
+1. Multicollinearity (VIF):
+             Feature       VIF
+distance_to_beach_km  3.883465
+    annual_precip_mm 16.027612
+   age_at_assessment  3.984250
+           is_strata  4.917633
+
+2. Heteroscedasticity (Breusch-Pagan Test):
+   LM Statistic: 1.600852e+02
+   LM-Test p-value: 1.401721e-33
+   F-Statistic: 4.151117e+01
+   F-Test p-value: 3.369716e-34
