@@ -198,16 +198,6 @@ st.sidebar.markdown("""
 **Model R-squared:** `{:.2f}%`
 """.format(model.rsquared * 100))
 
-# Informative guide explaining Strata vs Single-Family Home
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 💡 Real Estate Glossary")
-st.sidebar.info(
-    "**What is Strata?**\n\n"
-    "In Canada, **Strata** represents properties like **Condos and Townhouses** "
-    "where owners share ownership of common spaces (lobby, elevators, land) "
-    "under a strata corporation.\n\n"
-    "Non-strata properties are typically independent **Single-Family Homes**."
-)
 
 # The chart filters have been moved directly inside the tabs to keep the sidebar clean.
 df_filtered = df.copy()
