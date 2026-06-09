@@ -178,18 +178,8 @@ st.sidebar.info(
     "Non-strata properties are typically independent **Single-Family Homes**."
 )
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🔍 Chart Data Filters")
-st.sidebar.write("Filter the properties displayed on the charts by age group:")
-
-selected_age_groups = st.sidebar.multiselect(
-    "Select Age Groups",
-    options=['New (< 10 Years)', 'Modern (10-30 Years)', 'Established (30-60 Years)', 'Historic (60+ Years)'],
-    default=['New (< 10 Years)', 'Modern (10-30 Years)'] # Don't show all ages at once by default!
-)
-
-# Apply filter to DataFrame for plotting
-df_filtered = df[df['Age Group'].isin(selected_age_groups)]
+# The chart filters have been moved directly inside the tabs to keep the sidebar clean.
+df_filtered = df.copy()
 
 # Layout: 2 Columns (Left: Predictions & Coefficients, Right: Charts)
 col_left, col_right = st.columns([1, 1.5])
@@ -269,7 +259,20 @@ with col_right:
     
     with tab1:
         st.markdown("#### Assessed Valuation vs. Distance to Beach")
-        st.write("Scatter plot of properties colored by age group. **Click on the legend items on the right** to toggle individual age groups. The red line represents the fitted OLS line at average values of other features.")
+        
+        # Slider on top of the chart inside Tab 1
+        age_range_tab1 = st.slider(
+            "Adjust Displayed Property Age Range (Years):",
+            min_value=int(df["age_at_assessment"].min()),
+            max_value=int(df["age_at_assessment"].max()),
+            value=(10, 50), # Default to a subset so we don't show all ages at once
+            step=1,
+            key="tab1_age_slider"
+        )
+        
+        st.write("Scatter plot of properties colored by age. The right vertical bar represents the Property Age scale (0-120). Adjust the slider above to filter the properties displayed.")
+        
+        df_filtered_tab1 = df[(df["age_at_assessment"] >= age_range_tab1[0]) & (df["age_at_assessment"] <= age_range_tab1[1])]
         
         # Calculate predicted OLS line values
         mean_precip = df["annual_precip_mm"].mean()
@@ -285,28 +288,20 @@ with col_right:
             + coef["is_strata"] * mean_strata
         )
         
-        # Custom color palette matching premium aesthetics
-        color_map = {
-            'New (< 10 Years)': '#10b981',      # Emerald Green
-            'Modern (10-30 Years)': '#3b82f6',   # Royal Blue
-            'Established (30-60 Years)': '#8b5cf6', # Violet/Purple
-            'Historic (60+ Years)': '#ef4444'    # Red
-        }
-        
         fig1 = px.scatter(
-            df_filtered,
+            df_filtered_tab1,
             x="distance_to_beach_km",
             y="price_cad",
-            color="Age Group",
-            color_discrete_map=color_map,
-            category_orders={'Age Group': ['New (< 10 Years)', 'Modern (10-30 Years)', 'Established (30-60 Years)', 'Historic (60+ Years)']},
+            color="age_at_assessment",
+            color_continuous_scale="viridis_r",
+            range_color=[int(df["age_at_assessment"].min()), int(df["age_at_assessment"].max())],
             labels={
                 "distance_to_beach_km": "Distance to Beach (km)",
                 "price_cad": "Assessed Value (CAD)",
-                "Age Group": "Property Age Group"
+                "age_at_assessment": "Property Age (Years)"
             },
-            hover_data=["age_at_assessment", "neighbourhood_name", "tax_assessment_year"],
-            opacity=0.6
+            hover_data=["neighbourhood_name", "tax_assessment_year"],
+            opacity=0.5
         )
         
         # Add the regression line
@@ -320,16 +315,45 @@ with col_right:
         
         fig1.update_layout(
             margin=dict(l=0, r=0, t=10, b=0),
-            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+            coloraxis_colorbar=dict(
+                title="Property Age (Years)",
+                thicknessmode="pixels", thickness=15,
+                lenmode="fraction", len=0.8,
+                yanchor="middle", y=0.5
+            )
         )
         st.plotly_chart(fig1, use_container_width=True)
         
     with tab2:
         st.markdown("#### 3D View of Beach Proximity, Age, and Property Value")
-        st.write("A 3D scatter plot visualizing property values across building age and beach distance. **Click on the legend items on the right** to toggle Condo/Townhouse vs. Single-Family Home.")
+        
+        # Interactive filters directly inside Tab 2
+        selected_types_tab2 = st.multiselect(
+            "Select Property Types to Display:",
+            options=["Condo/Townhouse", "Single-Family Home"],
+            default=["Condo/Townhouse", "Single-Family Home"],
+            key="tab2_types_filter"
+        )
+        
+        age_range_tab2 = st.slider(
+            "Adjust Displayed Property Age Range for 3D View (Years):",
+            min_value=int(df["age_at_assessment"].min()),
+            max_value=int(df["age_at_assessment"].max()),
+            value=(10, 50), # Default to a subset
+            step=1,
+            key="tab2_age_slider"
+        )
+        
+        st.write("A 3D scatter plot visualizing property values. The legend on the right shows the Property Type colors. Click on them to toggle categories on and off.")
+        
+        df_filtered_tab2 = df[
+            df['Property Type'].isin(selected_types_tab2) &
+            (df['age_at_assessment'] >= age_range_tab2[0]) &
+            (df['age_at_assessment'] <= age_range_tab2[1])
+        ]
         
         # Subsample to keep 3D plot highly responsive
-        df_sub = df_filtered.sample(min(1500, len(df_filtered)), random_state=42) if len(df_filtered) > 0 else df_filtered
+        df_sub = df_filtered_tab2.sample(min(1500, len(df_filtered_tab2)), random_state=42) if len(df_filtered_tab2) > 0 else df_filtered_tab2
         
         if not df_sub.empty:
             fig2 = px.scatter_3d(
@@ -341,7 +365,7 @@ with col_right:
                 color_discrete_map={"Condo/Townhouse": "#10b981", "Single-Family Home": "#f43f5e"},
                 labels={
                     "distance_to_beach_km": "Beach Dist (km)",
-                    "age_at_assessment": "Building Age",
+                    "age_at_assessment": "Building Age (Years)",
                     "price_cad": "Valuation (CAD)",
                     "Property Type": "Property Type"
                 },
@@ -356,11 +380,14 @@ with col_right:
                     yaxis_title='Building Age (years)',
                     zaxis_title='Assessed Value (CAD)'
                 ),
-                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+                legend=dict(
+                    title="Property Type",
+                    yanchor="top", y=0.99, xanchor="right", x=0.99
+                )
             )
             st.plotly_chart(fig2, use_container_width=True)
         else:
-            st.warning("No data matches the selected age groups filter. Adjust the filter selection in the sidebar.")
+            st.warning("No data matches the selected filters. Adjust the controls above.")
         
     with tab3:
         st.markdown("#### Academic Diagnostic Summary & Residual Checks")
