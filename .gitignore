@@ -2,4 +2,3 @@
 __pycache__/
 *.pyc
 raw_data/
-processed_data/
