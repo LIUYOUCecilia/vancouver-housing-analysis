@@ -5,6 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
 import os
+import requests
+import json
 
 # Set page config for a premium wide-screen look
 st.set_page_config(
@@ -106,6 +108,64 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Load neighborhood mapping for live property geolocation (cached)
+@st.cache_data
+def load_neighborhood_mapping():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    mapping_path = os.path.join(current_dir, "neighbourhood_mapping.json")
+    if os.path.exists(mapping_path):
+        with open(mapping_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+# Fetch live meteorological weather data for Vancouver YVR Airport (cached for 10 min)
+@st.cache_data(ttl=600)
+def get_live_weather():
+    url = "https://api.open-meteo.com/v1/forecast?latitude=49.1939&longitude=-123.1840&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&timezone=America/Los_Angeles"
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            return r.json().get("current", {})
+    except Exception:
+        pass
+    return None
+
+def get_weather_desc(code):
+    codes = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Fog",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Moderate drizzle",
+        55: "Dense drizzle",
+        61: "Slight rain",
+        63: "Moderate rain",
+        65: "Heavy rain",
+        71: "Slight snow",
+        73: "Moderate snow",
+        75: "Heavy snow",
+        80: "Slight rain showers",
+        81: "Moderate rain showers",
+        82: "Violent rain showers",
+        95: "Thunderstorm"
+    }
+    return codes.get(code, "Cloudy")
+
+# Fetch recent property tax assessments from Vancouver Open Data (cached for 30 min)
+@st.cache_data(ttl=1800)
+def get_live_properties():
+    url = 'https://opendata.vancouver.ca/api/records/1.0/search/?dataset=property-tax-report&rows=15&sort=-tax_assessment_year'
+    try:
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            return r.json().get('records', [])
+    except Exception:
+        pass
+    return None
 
 # Load data and fit model (cached)
 @st.cache_data
@@ -288,7 +348,7 @@ with col_left:
 
 with col_right:
     # 3. Interactive Charts Tab
-    tab1, tab2, tab3 = st.tabs([" Price vs. Beach Proximity", " 3D Feature Space Plane", " Model Diagnostics"])
+    tab1, tab2, tab3, tab4 = st.tabs([" Price vs. Beach Proximity", " 3D Feature Space Plane", " Model Diagnostics", " Live Data Sync"])
     
     with tab1:
         st.markdown("#### Assessed Valuation vs. Distance to Beach")
@@ -490,3 +550,117 @@ with col_right:
             margin=dict(l=0, r=0, t=30, b=0)
         )
         st.plotly_chart(fig3, use_container_width=True)
+        
+    with tab4:
+        st.markdown("#### Real-Time Data Synchronization Hub")
+        st.write("Syncing current meteorological readings and municipal property valuations live from global APIs.")
+        
+        # 1. Live Weather Section
+        st.markdown("##### Current Weather at Vancouver Airport (YVR)")
+        weather = get_live_weather()
+        if weather:
+            w_cols = st.columns(4)
+            with w_cols[0]:
+                st.metric("Temperature", f"{weather.get('temperature_2m', '--')} °C")
+            with w_cols[1]:
+                st.metric("Relative Humidity", f"{weather.get('relative_humidity_2m', '--')} %")
+            with w_cols[2]:
+                st.metric("Live Precipitation", f"{weather.get('precipitation', '--')} mm")
+            with w_cols[3]:
+                st.metric("Condition", get_weather_desc(weather.get('weather_code', 0)))
+        else:
+            st.warning("Failed to fetch live weather data. Check internet connection.")
+            
+        # 2. Live Housing Section
+        st.markdown("##### Recently Assessed Vancouver Properties")
+        st.write("Live assessments pulled from the Vancouver Open Data Portal. You can select a property below to compare actual assessed value vs. OLS model predictions.")
+        
+        live_recs = get_live_properties()
+        mapping = load_neighborhood_mapping()
+        
+        if live_recs:
+            parsed_properties = []
+            for rec in live_recs:
+                f = rec.get('fields', {})
+                civic = f.get('to_civic_number') or f.get('from_civic_number') or ''
+                street = f.get('street_name') or ''
+                address = f"{civic} {street}".strip() or "Unknown Address"
+                
+                n_code = str(f.get('neighbourhood_code', ''))
+                n_name = None
+                beach_dist = None
+                if n_code in mapping:
+                    n_name = mapping[n_code]['neighbourhood_name']
+                    beach_dist = mapping[n_code]['distance_to_beach_km']
+                    
+                year_built = f.get('year_built')
+                tax_year = f.get('tax_assessment_year')
+                land_val = f.get('current_land_value')
+                imp_val = f.get('current_improvement_value') or 0
+                
+                if n_name and beach_dist is not None and year_built and tax_year and land_val:
+                    price = float(land_val) + float(imp_val)
+                    age = int(tax_year) - int(year_built)
+                    is_str = 1 if str(f.get('legal_type', '')).upper() == 'STRATA' else 0
+                    
+                    parsed_properties.append({
+                        "Address": address,
+                        "Neighborhood": n_name,
+                        "Beach Dist (km)": beach_dist,
+                        "Age at Assessment": age,
+                        "Property Type": "Condo/Townhouse" if is_str == 1 else "Single-Family Home",
+                        "Actual Assessed Price": price,
+                        "is_strata": is_str
+                    })
+                    
+            if parsed_properties:
+                # Convert to DataFrame for rendering
+                df_live = pd.DataFrame(parsed_properties)
+                
+                # Format price column for nice display in table
+                df_display = df_live.copy()
+                df_display["Actual Assessed Price"] = df_display["Actual Assessed Price"].map(lambda x: f"${x:,.0f} CAD")
+                st.dataframe(
+                    df_display[["Address", "Neighborhood", "Beach Dist (km)", "Age at Assessment", "Property Type", "Actual Assessed Price"]], 
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Selection and live prediction
+                st.markdown("##### Live Model Validation")
+                selected_addr = st.selectbox(
+                    "Select a property from the live feed to validate:",
+                    options=df_live["Address"].tolist()
+                )
+                
+                prop_data = df_live[df_live["Address"] == selected_addr].iloc[0]
+                
+                # Predict value using OLS coefficients
+                # We use the average annual precipitation of Vancouver as baseline climate input
+                live_precip = df["annual_precip_mm"].mean()
+                
+                live_pred = (
+                    coef["const"] 
+                    + coef["distance_to_beach_km"] * prop_data["Beach Dist (km)"] 
+                    + coef["annual_precip_mm"] * live_precip 
+                    + coef["age_at_assessment"] * prop_data["Age at Assessment"] 
+                    + coef["is_strata"] * prop_data["is_strata"]
+                )
+                
+                actual_price = prop_data["Actual Assessed Price"]
+                diff = live_pred - actual_price
+                pct_diff = (diff / actual_price) * 100
+                
+                val_cols = st.columns(3)
+                with val_cols[0]:
+                    st.metric("Actual Assessed Value", f"${actual_price:,.0f} CAD")
+                with val_cols[1]:
+                    st.metric("Model Predicted Value", f"${live_pred:,.0f} CAD")
+                with val_cols[2]:
+                    st.metric("Valuation Variance", f"${diff:+,.0f} CAD", f"{pct_diff:+.1f}%")
+                    
+                st.write(f"*Note: The model prediction projects the assessed valuation based on Vancouver's annual precipitation baseline ({live_precip:.1f} mm).*")
+            else:
+                st.info("No recently assessed properties matched the neighborhood spatial coordinates. Live feed is currently standby.")
+        else:
+            st.warning("Failed to fetch live property records. Open Data Portal might be undergoing maintenance.")
