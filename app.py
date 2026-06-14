@@ -7,13 +7,14 @@ import statsmodels.api as sm
 import os
 import requests
 import json
+from datetime import date
 
 # Set page config for a premium wide-screen look
 st.set_page_config(
     page_title="Vancouver Real Estate & Climate Regression Dashboard",
     page_icon="",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS for glassmorphism, nice fonts, and premium look
@@ -106,6 +107,45 @@ st.markdown("""
         box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 0.5rem;
     }
+
+    .source-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.82rem;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.35rem 0.55rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .color-rail {
+        height: 150px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: linear-gradient(180deg, #fde725 0%, #5ec962 28%, #21918c 55%, #3b528b 78%, #440154 100%);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+        margin: 0.25rem auto;
+        width: 28px;
+    }
+
+    .rail-label {
+        text-align: center;
+        font-size: 0.78rem;
+        color: #64748b;
+        line-height: 1.15;
+        margin-bottom: 0.25rem;
+    }
+
+    .rail-value {
+        text-align: center;
+        font-size: 0.78rem;
+        color: #475569;
+        font-weight: 600;
+        margin-top: 0.35rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -155,8 +195,8 @@ def get_weather_desc(code):
     }
     return codes.get(code, "Cloudy")
 
-# Fetch recent property tax assessments from Vancouver Open Data (cached for 30 min)
-@st.cache_data(ttl=1800)
+# Fetch recent property tax assessments from Vancouver Open Data (cached for 10 min)
+@st.cache_data(ttl=600)
 def get_live_properties():
     url = 'https://opendata.vancouver.ca/api/records/1.0/search/?dataset=property-tax-report&rows=15&sort=-tax_assessment_year'
     try:
@@ -167,28 +207,169 @@ def get_live_properties():
         pass
     return None
 
-# Load data and fit model (cached)
-@st.cache_data
+@st.cache_data(ttl=1800)
+def fetch_live_property_dataframe(row_count=6000):
+    url = (
+        "https://opendata.vancouver.ca/api/records/1.0/search/"
+        f"?dataset=property-tax-report&rows={row_count}"
+    )
+    r = requests.get(url, timeout=12)
+    r.raise_for_status()
+    records = r.json().get("records", [])
+    if not records:
+        raise ValueError("Vancouver Open Data returned no property records.")
+    return pd.DataFrame([rec.get("fields", {}) for rec in records])
+
+@st.cache_data(ttl=21600)
+def fetch_live_annual_climate(start_year, end_year):
+    start = f"{int(start_year)}-01-01"
+    archive_end_year = min(int(end_year), date.today().year)
+    if archive_end_year == date.today().year:
+        end = date.today().isoformat()
+    else:
+        end = f"{archive_end_year}-12-31"
+
+    url = (
+        "https://archive-api.open-meteo.com/v1/archive"
+        "?latitude=49.1939&longitude=-123.1840"
+        f"&start_date={start}&end_date={end}"
+        "&daily=precipitation_sum,temperature_2m_mean"
+        "&timezone=America/Los_Angeles"
+    )
+    r = requests.get(url, timeout=12)
+    r.raise_for_status()
+    daily = r.json().get("daily", {})
+    if not daily.get("time"):
+        raise ValueError("Open-Meteo archive returned no climate records.")
+
+    climate = pd.DataFrame({
+        "date": pd.to_datetime(daily["time"]),
+        "precipitation_sum": pd.to_numeric(daily.get("precipitation_sum"), errors="coerce"),
+        "temperature_2m_mean": pd.to_numeric(daily.get("temperature_2m_mean"), errors="coerce")
+    })
+    climate["year"] = climate["date"].dt.year
+    annual = climate.groupby("year", as_index=False).agg(
+        annual_precip_mm=("precipitation_sum", "sum"),
+        annual_temp_c=("temperature_2m_mean", "mean")
+    )
+    annual["annual_precip_mm"] = annual["annual_precip_mm"].round(1)
+    annual["annual_temp_c"] = annual["annual_temp_c"].round(1)
+    return annual
+
+def clean_live_model_data(df_properties, df_climate_annual, mapping):
+    required_cols = [
+        "current_land_value",
+        "year_built",
+        "tax_assessment_year",
+        "neighbourhood_code"
+    ]
+    df_live = df_properties.dropna(subset=required_cols).copy()
+    if df_live.empty:
+        raise ValueError("Live property records have no usable assessment rows.")
+
+    df_live["neighbourhood_code"] = df_live["neighbourhood_code"].astype(str)
+    df_live["neighbourhood_name"] = df_live["neighbourhood_code"].map(
+        lambda code: mapping.get(code, {}).get("neighbourhood_name")
+    )
+    df_live["distance_to_beach_km"] = df_live["neighbourhood_code"].map(
+        lambda code: mapping.get(code, {}).get("distance_to_beach_km")
+    )
+    df_live = df_live.dropna(subset=["neighbourhood_name", "distance_to_beach_km"]).copy()
+
+    numeric_cols = [
+        "current_land_value",
+        "current_improvement_value",
+        "year_built",
+        "tax_assessment_year",
+        "distance_to_beach_km"
+    ]
+    for col in numeric_cols:
+        df_live[col] = pd.to_numeric(df_live.get(col), errors="coerce")
+
+    df_live["current_improvement_value"] = df_live["current_improvement_value"].fillna(0)
+    df_live = df_live.dropna(subset=["current_land_value", "year_built", "tax_assessment_year", "distance_to_beach_km"])
+    df_live = df_live[
+        (df_live["year_built"] > 1800) &
+        (df_live["year_built"] <= df_live["tax_assessment_year"])
+    ].copy()
+    df_live["tax_assessment_year"] = df_live["tax_assessment_year"].astype(int)
+    df_live["year_built"] = df_live["year_built"].astype(int)
+    df_live["climate_year"] = df_live["tax_assessment_year"] - 1
+
+    df_live = pd.merge(
+        df_live,
+        df_climate_annual,
+        left_on="climate_year",
+        right_on="year",
+        how="left"
+    )
+    df_live = df_live.dropna(subset=["annual_precip_mm", "annual_temp_c"]).copy()
+    if df_live["annual_precip_mm"].nunique() < 2:
+        raise ValueError("Live model sample has too little climate-year variation for OLS.")
+    df_live["price_cad"] = df_live["current_land_value"] + df_live["current_improvement_value"]
+    df_live["age_at_assessment"] = df_live["tax_assessment_year"] - df_live["year_built"]
+    if "legal_type" in df_live.columns:
+        df_live["is_strata"] = df_live["legal_type"].apply(lambda x: 1 if str(x).upper() == "STRATA" else 0)
+    else:
+        df_live["is_strata"] = 0
+
+    df_live = df_live[[
+        "tax_assessment_year",
+        "neighbourhood_name",
+        "distance_to_beach_km",
+        "age_at_assessment",
+        "is_strata",
+        "annual_precip_mm",
+        "annual_temp_c",
+        "price_cad"
+    ]]
+
+    price_col = df_live["price_cad"]
+    q1 = price_col.quantile(0.25)
+    q3 = price_col.quantile(0.75)
+    iqr = q3 - q1
+    df_live = df_live[(price_col >= q1 - 1.5 * iqr) & (price_col <= q3 + 1.5 * iqr)].copy()
+    if len(df_live) < 250:
+        raise ValueError("Live cleaned dataset is too small for a stable OLS model.")
+    return df_live
+
+# Load data and fit model (online-first with local CSV fallback)
+@st.cache_data(ttl=1800)
 def load_and_model_data():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(current_dir, "processed_data", "vancouver_combined_cleaned.csv")
-    if not os.path.exists(data_path):
-        # Fallback if cleaning hasn't run
-        from data_cleaning import clean_and_merge_data
-        df, _ = clean_and_merge_data(current_dir)
-    else:
-        df = pd.read_csv(data_path)
-        
+    mapping = load_neighborhood_mapping()
+    data_source = "Live Vancouver Open Data + Open-Meteo archive"
+    try:
+        df_properties = fetch_live_property_dataframe()
+        assessment_years = pd.to_numeric(df_properties.get("tax_assessment_year"), errors="coerce").dropna()
+        if assessment_years.empty:
+            raise ValueError("No tax assessment years found in live property data.")
+        df_climate = fetch_live_annual_climate(int(assessment_years.min()) - 1, int(assessment_years.max()) - 1)
+        df = clean_live_model_data(df_properties, df_climate, mapping)
+    except Exception as live_error:
+        data_source = f"Local cached CSV fallback ({live_error})"
+        df = None
+
+    if df is None:
+        data_source = data_source
+        data_path = os.path.join(current_dir, "processed_data", "vancouver_combined_cleaned.csv")
+        if not os.path.exists(data_path):
+            # Fallback if cleaning hasn't run
+            from data_cleaning import clean_and_merge_data
+            df, _ = clean_and_merge_data(current_dir)
+        else:
+            df = pd.read_csv(data_path)
+
     # Fit OLS
     Y = df["price_cad"]
     X = df[["distance_to_beach_km", "annual_precip_mm", "age_at_assessment", "is_strata"]]
-    X_with_const = sm.add_constant(X)
+    X_with_const = sm.add_constant(X, has_constant="add")
     model = sm.OLS(Y, X_with_const).fit()
     
-    return df, model
+    return df, model, data_source
 
 try:
-    df, model = load_and_model_data()
+    df, model, data_source = load_and_model_data()
     coef = model.params
     # Add consumer-friendly columns for visualization and legends
     df['Property Type'] = df['is_strata'].map({1: "Condo/Townhouse", 0: "Single-Family Home"})
@@ -244,6 +425,10 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("""
 **Model R-squared:** `{:.2f}%`
 """.format(model.rsquared * 100))
+st.sidebar.markdown(
+    f'<div class="source-pill">Live status: {data_source}</div>',
+    unsafe_allow_html=True
+)
 
 # The chart filters have been moved directly inside the tabs to keep the sidebar clean.
 df_filtered = df.copy()
@@ -352,18 +537,12 @@ with col_right:
     
     with tab1:
         st.markdown("#### Assessed Valuation vs. Distance to Beach")
-        
-        # Slider on top of the chart inside Tab 1
-        age_range_tab1 = st.slider(
-            "Adjust Displayed Property Age Range (Years):",
-            min_value=int(df["age_at_assessment"].min()),
-            max_value=int(df["age_at_assessment"].max()),
-            value=(10, 50), # Default to a subset so we don't show all ages at once
-            step=1,
-            key="tab1_age_slider"
-        )
-        
-        st.write("Scatter plot of properties colored by age. The right vertical bar represents the Property Age scale (0-120). Adjust the slider above to filter the properties displayed.")
+
+        st.write("Use the age-range buttons beside the color scale to update the chart.")
+
+        age_min = int(df["age_at_assessment"].min())
+        age_max = int(df["age_at_assessment"].max())
+        age_range_tab1 = (min(max(10, age_min), age_max), min(max(50, age_min), age_max))
         
         df_filtered_tab1 = df[(df["age_at_assessment"] >= age_range_tab1[0]) & (df["age_at_assessment"] <= age_range_tab1[1])]
         
@@ -381,40 +560,89 @@ with col_right:
             + coef["is_strata"] * mean_strata
         )
         
-        fig1 = px.scatter(
-            df_filtered_tab1,
-            x="distance_to_beach_km",
-            y="price_cad",
-            color="age_at_assessment",
-            color_continuous_scale="viridis_r",
-            range_color=[int(df["age_at_assessment"].min()), int(df["age_at_assessment"].max())],
-            labels={
-                "distance_to_beach_km": "Distance to Beach (km)",
-                "price_cad": "Assessed Value (CAD)",
-                "age_at_assessment": "Property Age (Years)"
-            },
-            hover_data=["neighbourhood_name", "tax_assessment_year"],
-            opacity=0.5
-        )
-        
-        # Add the regression line
+        def trace_payload(age_low, age_high):
+            visible = df[(df["age_at_assessment"] >= age_low) & (df["age_at_assessment"] <= age_high)]
+            return {
+                "x": [visible["distance_to_beach_km"].tolist()],
+                "y": [visible["price_cad"].tolist()],
+                "marker.color": [visible["age_at_assessment"].tolist()],
+                "marker.cmin": [age_low],
+                "marker.cmax": [age_high],
+                "customdata": [visible[["neighbourhood_name", "tax_assessment_year", "age_at_assessment"]].values.tolist()]
+            }
+
+        age_buttons = [
+            ("10-50", age_range_tab1[0], age_range_tab1[1]),
+            ("All", age_min, age_max),
+            ("0-20", age_min, min(20, age_max)),
+            ("20-50", max(20, age_min), min(50, age_max)),
+            ("50+", max(50, age_min), age_max),
+        ]
+
+        fig1 = go.Figure()
         fig1.add_trace(go.Scatter(
-            x=x_line, 
-            y=y_line, 
-            mode='lines', 
-            name='OLS Fitted Regression', 
+            x=df_filtered_tab1["distance_to_beach_km"],
+            y=df_filtered_tab1["price_cad"],
+            mode="markers",
+            name="Properties",
+            customdata=df_filtered_tab1[["neighbourhood_name", "tax_assessment_year", "age_at_assessment"]].values,
+            marker=dict(
+                color=df_filtered_tab1["age_at_assessment"],
+                colorscale="Viridis",
+                reversescale=True,
+                cmin=age_range_tab1[0],
+                cmax=age_range_tab1[1],
+                opacity=0.5,
+                size=6,
+                colorbar=dict(
+                    title="Age",
+                    thickness=16,
+                    len=0.76,
+                    x=1.02
+                )
+            ),
+            hovertemplate=(
+                "Distance: %{x:.2f} km<br>"
+                "Value: $%{y:,.0f}<br>"
+                "Neighborhood: %{customdata[0]}<br>"
+                "Assessment year: %{customdata[1]}<br>"
+                "Age: %{customdata[2]} years"
+                "<extra></extra>"
+            )
+        ))
+
+        fig1.add_trace(go.Scatter(
+            x=x_line,
+            y=y_line,
+            mode='lines',
+            name='OLS Fitted Regression',
             line=dict(color='#dc2626', width=3)
         ))
-        
+
         fig1.update_layout(
-            height=360,
-            margin=dict(l=0, r=0, t=10, b=0),
-            coloraxis_colorbar=dict(
-                title="Property Age (Years)",
-                thicknessmode="pixels", thickness=15,
-                lenmode="fraction", len=0.8,
-                yanchor="middle", y=0.5
-            )
+            height=380,
+            margin=dict(l=0, r=118, t=10, b=0),
+            xaxis_title="Distance to Beach (km)",
+            yaxis_title="Assessed Value (CAD)",
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    direction="down",
+                    x=1.19,
+                    y=0.9,
+                    xanchor="left",
+                    yanchor="top",
+                    showactive=True,
+                    buttons=[
+                        dict(
+                            label=label,
+                            method="restyle",
+                            args=[trace_payload(low, high), [0]]
+                        )
+                        for label, low, high in age_buttons
+                    ]
+                )
+            ]
         )
         st.plotly_chart(fig1, use_container_width=True)
         
