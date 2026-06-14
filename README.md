@@ -1,5 +1,7 @@
 # Vancouver Real Estate & Climate Regression Analysis (Dual-Path)
 
+**Live Streamlit App:** [liuyoucecilia-vancouver-housing-analysis-app-l8nug5.streamlit.app](https://liuyoucecilia-vancouver-housing-analysis-app-l8nug5.streamlit.app/)
+
 This repository contains an advanced data science project implementing a **Dual-Path** (双线并行) optimization plan for real estate valuation and climate regression analysis. The project bridges academic econometrics and interactive product development by:
 
 1. **Academic/Research Path (UBC RA Prep)**: Utilizing real Vancouver property tax assessments (City of Vancouver Open Data) and real YVR Airport climate observations (Environment Canada/Meteostat WMO: `71892`), running multiple linear regression with VIF and Breusch-Pagan diagnostic tests, and implementing Stanford CS229 Normal Equation matrix math validation.
@@ -101,3 +103,5 @@ You can deploy this interactive dashboard to the web for free:
 5. Click **Deploy!**
 
 Once deployed, Streamlit will provide a public URL. You can add this live URL to the "About" website link on your GitHub repository page so visitors can interact with it instantly.
+
+Current app URL: [https://liuyoucecilia-vancouver-housing-analysis-app-l8nug5.streamlit.app/](https://liuyoucecilia-vancouver-housing-analysis-app-l8nug5.streamlit.app/)
