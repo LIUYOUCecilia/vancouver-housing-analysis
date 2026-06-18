@@ -8,10 +8,13 @@ import os
 import requests
 import json
 from datetime import date
+from io import BytesIO
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 # Set page config for a premium wide-screen look
 st.set_page_config(
-    page_title="Vancouver Real Estate & Climate Regression Dashboard",
+    page_title="Interactive Analytics Dashboard",
     page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -30,11 +33,17 @@ st.markdown("""
     [data-testid="stSidebarUserContent"] {
         background-color: #ffffff !important;
     }
+
+    #MainMenu, footer, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] {
+        visibility: hidden;
+        height: 0%;
+        position: fixed;
+    }
     
     /* Compress default Streamlit margins and padding */
     .block-container {
         padding-top: 1.2rem !important;
-        padding-bottom: 0.5rem !important;
+        padding-bottom: 5.5rem !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
     }
@@ -47,7 +56,7 @@ st.markdown("""
         font-family: 'Space Grotesk', sans-serif;
         font-size: 2.8rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #2563eb, #3b82f6, #10b981);
+        background: linear-gradient(135deg, #0F172A, #2563eb, #10B981);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin-bottom: 0.1rem;
@@ -60,11 +69,11 @@ st.markdown("""
     }
     
     .prediction-card {
-        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+        background: linear-gradient(135deg, #0F172A, #1e3a8a);
         color: white;
         padding: 1rem 1.2rem;
         border-radius: 12px;
-        box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 8px 20px -5px rgba(15, 23, 42, 0.35);
         margin-bottom: 0.6rem;
     }
     
@@ -125,7 +134,7 @@ st.markdown("""
         height: 150px;
         border-radius: 8px;
         border: 1px solid #cbd5e1;
-        background: linear-gradient(180deg, #fde725 0%, #5ec962 28%, #21918c 55%, #3b528b 78%, #440154 100%);
+        background: linear-gradient(180deg, #10B981 0%, #38bdf8 45%, #0F172A 100%);
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
         margin: 0.25rem auto;
         width: 28px;
@@ -145,6 +154,105 @@ st.markdown("""
         color: #475569;
         font-weight: 600;
         margin-top: 0.35rem;
+    }
+
+    .value-points {
+        color: #334155;
+        font-size: 1rem;
+        line-height: 1.7;
+        margin: 0.4rem 0 0.7rem 0;
+    }
+
+    .demo-disclaimer {
+        background: #f8fafc;
+        border-left: 4px solid #10B981;
+        color: #334155;
+        padding: 0.75rem 0.9rem;
+        border-radius: 8px;
+        margin: 0.8rem 0 1rem 0;
+        font-size: 0.95rem;
+    }
+
+    .assessed-value-note {
+        background: #ecfeff;
+        border: 1px solid #bae6fd;
+        color: #0f172a;
+        padding: 0.75rem 0.9rem;
+        border-radius: 8px;
+        margin: 0.2rem 0 0.8rem 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .trust-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.75rem;
+        color: #334155;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        margin-top: 0.6rem;
+    }
+
+    .capability-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin: 0.75rem 0 1rem 0;
+    }
+
+    .capability-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.85rem;
+        background: #ffffff;
+        box-shadow: 0 8px 22px -18px rgba(15, 23, 42, 0.45);
+    }
+
+    .capability-card h4 {
+        color: #0F172A;
+        font-size: 0.98rem;
+        margin: 0 0 0.4rem 0;
+    }
+
+    .capability-card p {
+        color: #475569;
+        font-size: 0.86rem;
+        line-height: 1.35;
+        margin: 0.22rem 0;
+    }
+
+    .capability-card strong {
+        color: #10B981;
+        font-weight: 700;
+    }
+
+    .method-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999;
+        background: rgba(248, 250, 252, 0.98);
+        border-top: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.78rem;
+        line-height: 1.35;
+        padding: 0.55rem 2rem;
+        box-shadow: 0 -6px 18px -18px rgba(15, 23, 42, 0.7);
+    }
+
+    .method-footer a {
+        color: #0F172A;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    @media (max-width: 900px) {
+        .capability-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -372,7 +480,7 @@ try:
     df, model, data_source = load_and_model_data()
     coef = model.params
     # Add consumer-friendly columns for visualization and legends
-    df['Property Type'] = df['is_strata'].map({1: "Condo/Townhouse", 0: "Single-Family Home"})
+    df['Property Type'] = df['is_strata'].map({1: "Condo/Townhouse", 0: "Single-Family"})
     df['Age Group'] = pd.cut(
         df['age_at_assessment'],
         bins=[-1, 10, 30, 60, 999],
@@ -383,12 +491,59 @@ except Exception as e:
     st.stop()
 
 # Header Section
-st.markdown('<div class="main-title">Vancouver Real Estate & Climate Regression Analysis</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">An interactive portfolio showcase analyzing how location, building characteristics, and annual climate trends shape property valuations.</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">Interactive Analytics Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Streamlit + Plotly | Statistical modeling | Deployed & shareable</div>', unsafe_allow_html=True)
+st.caption("Sample use case: Vancouver property & climate data")
+st.markdown(
+    """
+    <div class="value-points">
+        ✓ Upload your CSV → interactive charts & filters<br>
+        ✓ Statistical insights, not just pretty graphs<br>
+        ✓ Deployed link + source code included
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+cta_col1, cta_col2, _ = st.columns([0.16, 0.14, 0.70])
+with cta_col1:
+    st.link_button("Order on Fiverr →", "https://www.fiverr.com/")
+with cta_col2:
+    st.link_button("View GitHub →", "https://github.com/LIUYOUCecilia/vancouver-housing-analysis")
+st.markdown(
+    """
+    <div class="demo-disclaimer">
+        <strong>This is a portfolio demo.</strong> Built with public Vancouver open data to showcase dashboard capabilities.
+        <strong>Your project can use any CSV dataset</strong> (sales, marketing, operations, research).
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown(
+    """
+    <div class="capability-grid">
+        <div class="capability-card">
+            <h4>Small business</h4>
+            <p><strong>Demo capability:</strong> filters, KPI cards, trend charts</p>
+            <p><strong>You get:</strong> sales or marketing dashboard</p>
+        </div>
+        <div class="capability-card">
+            <h4>Researcher</h4>
+            <p><strong>Demo capability:</strong> VIF, residual plot, regression line</p>
+            <p><strong>You get:</strong> statistical report + interactive explorer</p>
+        </div>
+        <div class="capability-card">
+            <h4>Real estate / local biz</h4>
+            <p><strong>Demo capability:</strong> area comparison and local signals</p>
+            <p><strong>You get:</strong> geo-filtered analytics</p>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Sidebar for User Inputs
-st.sidebar.markdown("###  Property Predictor Sliders")
-st.sidebar.write("Adjust property attributes below to estimate its assessed value dynamically using OLS coefficients:")
+st.sidebar.markdown("### What-If Scenario Controls")
+st.sidebar.write("Adjust inputs to see how the model estimates value in real time.")
 
 # Set up sliders based on real dataset ranges
 dist_beach = st.sidebar.slider(
@@ -409,7 +564,7 @@ prop_age = st.sidebar.slider(
 
 prop_type = st.sidebar.selectbox(
     "Property Type",
-    options=["Condo / Townhouse", "Single-Family Home"]
+    options=["Condo/Townhouse", "Single-Family"]
 )
 is_strata = 1 if "Condo" in prop_type else 0
 
@@ -422,11 +577,18 @@ ann_precip = st.sidebar.slider(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("""
-**Model R-squared:** `{:.2f}%`
-""".format(model.rsquared * 100))
 st.sidebar.markdown(
     f'<div class="source-pill">Live status: {data_source}</div>',
+    unsafe_allow_html=True
+)
+st.sidebar.markdown(
+    """
+    <div class="trust-box">
+        Based in Vancouver (PST) — North America friendly hours<br>
+        Incoming UBC Mathematics · AP Statistics<br>
+        ⭐ Available for custom dashboards on Fiverr
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
@@ -449,91 +611,106 @@ with col_left:
     # 1. Prediction Output Card (Placed back in its original position at the top of col_left)
     st.markdown(f"""
     <div class="prediction-card">
-        <div> Estimated Property Assessed Value</div>
         <div class="prediction-value">${pred_val:,.0f} CAD</div>
-        <div style="margin-top: 10px; font-size: 0.85rem; opacity: 0.85;">
-            *Computed using real-world OLS coefficients on 4,300+ Vancouver properties.
+        <div style="font-size: 0.95rem; opacity: 0.95;">Estimated value</div>
+        <div style="margin-top: 10px; font-size: 0.85rem; opacity: 0.88;">
+            Based on location, building age, property type & climate factors
         </div>
     </div>
     """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="assessed-value-note">
+            <strong>Important:</strong> this demo estimates assessed value, not live market price or MLS transaction value.
+            It is for portfolio illustration and dashboard capability review.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    # 2. Coefficients List (Sleek cards)
-    st.markdown("### 📊 Valuation Breakdown (Current Property)")
-    st.write("Dynamic impact of each property attribute on the estimated valuation:")
-    
     # Calculate individual components
     val_const = coef['const']
     val_beach = coef['distance_to_beach_km'] * dist_beach
     val_age = coef['age_at_assessment'] * prop_age
     val_strata = coef['is_strata'] * is_strata
     val_precip = coef['annual_precip_mm'] * ann_precip
+
+    with st.expander("View statistical breakdown →"):
+        st.write("Dynamic impact of each property attribute on the estimated valuation:")
     
-    # 1. Base Value
-    st.markdown(f"""
-    <div class="coefficient-card">
-        <div class="coefficient-title">Base Baseline Value</div>
-        <div class="coefficient-value" style="color: #10b981;">+${val_const:,.0f} CAD</div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Baseline market starting value for properties in Vancouver.
+        # 1. Base Value
+        st.markdown(f"""
+        <div class="coefficient-card">
+            <div class="coefficient-title">Base Baseline Value</div>
+            <div class="coefficient-value" style="color: #10b981;">+${val_const:,.0f} CAD</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
+                Baseline market starting value for properties in Vancouver.
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-    # 2. Beach Proximity
-    sign_beach = "+" if val_beach >= 0 else "-"
-    color_beach = "#10b981" if val_beach >= 0 else "#0f172a"
-    st.markdown(f"""
-    <div class="coefficient-card">
-        <div class="coefficient-title">Beach Proximity Impact ({dist_beach:.1f} km)</div>
-        <div class="coefficient-value" style="color: {color_beach};">{sign_beach}${abs(val_beach):,.0f} CAD</div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Adjusted at -${abs(coef['distance_to_beach_km']):,.0f} CAD per km away from beach.
+        # 2. Beach Proximity
+        sign_beach = "+" if val_beach >= 0 else "-"
+        color_beach = "#10b981" if val_beach >= 0 else "#0f172a"
+        st.markdown(f"""
+        <div class="coefficient-card">
+            <div class="coefficient-title">Beach Proximity Impact ({dist_beach:.1f} km)</div>
+            <div class="coefficient-value" style="color: {color_beach};">{sign_beach}${abs(val_beach):,.0f} CAD</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
+                Adjusted at -${abs(coef['distance_to_beach_km']):,.0f} CAD per km away from beach.
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-    # 3. Building Age
-    sign_age = "+" if val_age >= 0 else "-"
-    color_age = "#10b981" if val_age >= 0 else "#0f172a"
-    st.markdown(f"""
-    <div class="coefficient-card">
-        <div class="coefficient-title">Building Age Depreciation ({prop_age} Years)</div>
-        <div class="coefficient-value" style="color: {color_age};">{sign_age}${abs(val_age):,.0f} CAD</div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Depreciated at -${abs(coef['age_at_assessment']):,.0f} CAD per year of building age.
+        # 3. Building Age
+        sign_age = "+" if val_age >= 0 else "-"
+        color_age = "#10b981" if val_age >= 0 else "#0f172a"
+        st.markdown(f"""
+        <div class="coefficient-card">
+            <div class="coefficient-title">Building Age Depreciation ({prop_age} Years)</div>
+            <div class="coefficient-value" style="color: {color_age};">{sign_age}${abs(val_age):,.0f} CAD</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
+                Depreciated at -${abs(coef['age_at_assessment']):,.0f} CAD per year of building age.
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-    # 4. Property Type
-    sign_strata = "+" if val_strata >= 0 else "-"
-    color_strata = "#10b981" if val_strata >= 0 else "#0f172a"
-    st.markdown(f"""
-    <div class="coefficient-card">
-        <div class="coefficient-title">Property Type Adjustment ({prop_type})</div>
-        <div class="coefficient-value" style="color: {color_strata};">{sign_strata}${abs(val_strata):,.0f} CAD</div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Average flat adjustment of -${abs(coef['is_strata']):,.0f} CAD for Condo/Townhouse units.
+        # 4. Property Type
+        sign_strata = "+" if val_strata >= 0 else "-"
+        color_strata = "#10b981" if val_strata >= 0 else "#0f172a"
+        st.markdown(f"""
+        <div class="coefficient-card">
+            <div class="coefficient-title">Property Type Adjustment ({prop_type})</div>
+            <div class="coefficient-value" style="color: {color_strata};">{sign_strata}${abs(val_strata):,.0f} CAD</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
+                Average flat adjustment of -${abs(coef['is_strata']):,.0f} CAD for Condo/Townhouse units.
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-    # 5. Climate / Precipitation
-    sign_precip = "+" if val_precip >= 0 else "-"
-    color_precip = "#10b981" if val_precip >= 0 else "#0f172a"
-    st.markdown(f"""
-    <div class="coefficient-card">
-        <div class="coefficient-title">Precipitation Impact ({ann_precip} mm)</div>
-        <div class="coefficient-value" style="color: {color_precip};">{sign_precip}${abs(val_precip):,.0f} CAD</div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-            Correlated at -${abs(coef['annual_precip_mm']):,.2f} CAD per mm of annual precipitation.
+        # 5. Climate / Precipitation
+        sign_precip = "+" if val_precip >= 0 else "-"
+        color_precip = "#10b981" if val_precip >= 0 else "#0f172a"
+        st.markdown(f"""
+        <div class="coefficient-card">
+            <div class="coefficient-title">Precipitation Impact ({ann_precip} mm)</div>
+            <div class="coefficient-value" style="color: {color_precip};">{sign_precip}${abs(val_precip):,.0f} CAD</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
+                Correlated at -${abs(coef['annual_precip_mm']):,.2f} CAD per mm of annual precipitation.
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 with col_right:
     # 3. Interactive Charts Tab
-    tab1, tab2, tab3, tab4 = st.tabs([" Price vs. Beach Proximity", " 3D Feature Space Plane", " Model Diagnostics", " Live Data Sync"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "Price vs. Beach Proximity",
+        "3D Feature Space",
+        "Model Diagnostics",
+        "Live Data Sync",
+        "📁 Sample: Upload & Explore",
+        "Export / Report"
+    ])
     
     with tab1:
         st.markdown("#### Assessed Valuation vs. Distance to Beach")
@@ -588,8 +765,8 @@ with col_right:
             customdata=df_filtered_tab1[["neighbourhood_name", "tax_assessment_year", "age_at_assessment"]].values,
             marker=dict(
                 color=df_filtered_tab1["age_at_assessment"],
-                colorscale="Viridis",
-                reversescale=True,
+                colorscale=[[0, "#10B981"], [0.5, "#38bdf8"], [1, "#0F172A"]],
+                reversescale=False,
                 cmin=age_range_tab1[0],
                 cmax=age_range_tab1[1],
                 opacity=0.5,
@@ -615,11 +792,13 @@ with col_right:
             x=x_line,
             y=y_line,
             mode='lines',
-            name='OLS Fitted Regression',
-            line=dict(color='#dc2626', width=3)
+            name='Fitted trend line',
+            line=dict(color='#10B981', width=3)
         ))
 
         fig1.update_layout(
+            template="plotly_white",
+            font=dict(color="#0F172A"),
             height=380,
             margin=dict(l=0, r=118, t=10, b=0),
             xaxis_title="Distance to Beach (km)",
@@ -652,8 +831,8 @@ with col_right:
         # Interactive filters directly inside Tab 2
         selected_types_tab2 = st.multiselect(
             "Select Property Types to Display:",
-            options=["Condo/Townhouse", "Single-Family Home"],
-            default=["Condo/Townhouse", "Single-Family Home"],
+            options=["Condo/Townhouse", "Single-Family"],
+            default=["Condo/Townhouse", "Single-Family"],
             key="tab2_types_filter"
         )
         
@@ -684,7 +863,7 @@ with col_right:
                 y="age_at_assessment",
                 z="price_cad",
                 color="Property Type",
-                color_discrete_map={"Condo/Townhouse": "#10b981", "Single-Family Home": "#f43f5e"},
+                color_discrete_map={"Condo/Townhouse": "#A7D8A0", "Single-Family": "#E8C547"},
                 labels={
                     "distance_to_beach_km": "Beach Dist (km)",
                     "age_at_assessment": "Building Age (Years)",
@@ -692,10 +871,12 @@ with col_right:
                     "Property Type": "Property Type"
                 },
                 hover_data=["neighbourhood_name"],
-                opacity=0.7
+                opacity=0.6
             )
             
             fig2.update_layout(
+                template="plotly_white",
+                font=dict(color="#0F172A"),
                 height=360,
                 margin=dict(l=0, r=0, t=0, b=0),
                 scene=dict(
@@ -714,6 +895,7 @@ with col_right:
         
     with tab3:
         st.markdown("#### Academic Diagnostic Summary & Residual Checks")
+        st.metric("Model R-squared", f"{model.rsquared * 100:.2f}%")
         
         diag_col1, diag_col2 = st.columns(2)
         
@@ -769,10 +951,12 @@ with col_right:
             y="Residuals",
             opacity=0.4,
             labels={"Fitted": "Fitted Values (Millions CAD)", "Residuals": "Residuals (Thousands CAD)"},
-            color_discrete_sequence=["#5b21b6"]
+            color_discrete_sequence=["#10B981"]
         )
-        fig3.add_hline(y=0, line_dash="dash", line_color="#ef4444", line_width=2)
+        fig3.add_hline(y=0, line_dash="dash", line_color="#0F172A", line_width=2)
         fig3.update_layout(
+            template="plotly_white",
+            font=dict(color="#0F172A"),
             height=300,
             title="Residuals vs. Fitted Values (Heteroscedasticity Visual Check)",
             margin=dict(l=0, r=0, t=30, b=0)
@@ -836,7 +1020,7 @@ with col_right:
                         "Neighborhood": n_name,
                         "Beach Dist (km)": beach_dist,
                         "Age at Assessment": age,
-                        "Property Type": "Condo/Townhouse" if is_str == 1 else "Single-Family Home",
+                        "Property Type": "Condo/Townhouse" if is_str == 1 else "Single-Family",
                         "Actual Assessed Price": price,
                         "is_strata": is_str
                     })
@@ -892,3 +1076,153 @@ with col_right:
                 st.info("No recently assessed properties matched the neighborhood spatial coordinates. Live feed is currently standby.")
         else:
             st.warning("Failed to fetch live property records. Open Data Portal might be undergoing maintenance.")
+
+    with tab5:
+        st.markdown("#### Upload Your CSV")
+        st.write("This is exactly what I build for clients — your data, your filters, your deployed link.")
+
+        sample_client_df = pd.DataFrame({
+            "month": ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+            "channel": ["Search", "Social", "Email", "Search", "Social", "Email", "Search", "Social"],
+            "campaign": ["Spring A", "Spring A", "Spring A", "Summer B", "Summer B", "Summer B", "Fall C", "Fall C"],
+            "spend": [4200, 3100, 900, 5100, 3800, 1200, 5600, 4100],
+            "leads": [182, 126, 64, 231, 151, 88, 248, 172],
+            "revenue": [28500, 19400, 9600, 37200, 24100, 12800, 41300, 27600]
+        })
+        st.download_button(
+            "Download sample CSV",
+            data=sample_client_df.to_csv(index=False).encode("utf-8"),
+            file_name="sample_client_dashboard_data.csv",
+            mime="text/csv"
+        )
+
+        uploaded_client_file = st.file_uploader("Upload your CSV to preview the client workflow", type=["csv"])
+        explore_df = pd.read_csv(uploaded_client_file) if uploaded_client_file else sample_client_df
+
+        st.dataframe(explore_df.head(20), use_container_width=True, hide_index=True)
+
+        numeric_cols = explore_df.select_dtypes(include=np.number).columns.tolist()
+        category_cols = [col for col in explore_df.columns if col not in numeric_cols]
+
+        if category_cols:
+            filter_col = st.selectbox("Filter by category", category_cols, key="upload_filter_col")
+            filter_values = sorted(explore_df[filter_col].dropna().astype(str).unique().tolist())
+            selected_values = st.multiselect("Show values", filter_values, default=filter_values, key="upload_filter_values")
+            explore_df = explore_df[explore_df[filter_col].astype(str).isin(selected_values)] if selected_values else explore_df
+
+        if numeric_cols:
+            metric_col = st.selectbox("Metric to analyze", numeric_cols, key="upload_metric")
+            fig_upload_1 = px.histogram(explore_df, x=metric_col, nbins=12, title=f"{metric_col} distribution")
+            fig_upload_1.update_layout(template="plotly_white", font=dict(color="#0F172A"))
+            fig_upload_1.update_traces(marker_color="#10B981")
+            st.plotly_chart(fig_upload_1, use_container_width=True)
+
+        if category_cols and numeric_cols:
+            group_col = st.selectbox("Compare metric by", category_cols, key="upload_group")
+            fig_upload_2 = px.bar(
+                explore_df.groupby(group_col, as_index=False)[metric_col].mean(),
+                x=group_col,
+                y=metric_col,
+                title=f"Average {metric_col} by {group_col}",
+                color_discrete_sequence=["#10B981"]
+            )
+            fig_upload_2.update_layout(template="plotly_white", font=dict(color="#0F172A"))
+            st.plotly_chart(fig_upload_2, use_container_width=True)
+
+        if len(numeric_cols) >= 2:
+            x_col = st.selectbox("X-axis", numeric_cols, key="upload_x")
+            y_col = st.selectbox("Y-axis", numeric_cols, index=1, key="upload_y")
+            color_col = category_cols[0] if category_cols else None
+            fig_upload_3 = px.scatter(
+                explore_df,
+                x=x_col,
+                y=y_col,
+                color=color_col,
+                title=f"{y_col} vs. {x_col}",
+                color_discrete_sequence=["#10B981", "#0F172A", "#38bdf8", "#64748b"]
+            )
+            fig_upload_3.update_layout(template="plotly_white", font=dict(color="#0F172A"))
+            st.plotly_chart(fig_upload_3, use_container_width=True)
+
+    with tab6:
+        st.markdown("#### Export / Report")
+        st.caption("Charts can be saved as PNG from the Plotly camera icon in each chart toolbar.")
+        export_type = st.multiselect(
+            "Property types",
+            options=["Condo/Townhouse", "Single-Family"],
+            default=["Condo/Townhouse", "Single-Family"],
+            key="export_property_types"
+        )
+        export_age = st.slider(
+            "Property age range",
+            min_value=int(df["age_at_assessment"].min()),
+            max_value=int(df["age_at_assessment"].max()),
+            value=(10, 50),
+            step=1,
+            key="export_age_range"
+        )
+        export_df = df[
+            df["Property Type"].isin(export_type)
+            & (df["age_at_assessment"] >= export_age[0])
+            & (df["age_at_assessment"] <= export_age[1])
+        ]
+        st.metric("Rows ready to export", f"{len(export_df):,}")
+        st.download_button(
+            "Download filtered data (CSV)",
+            data=export_df.to_csv(index=False).encode("utf-8"),
+            file_name="filtered_vancouver_dashboard_data.csv",
+            mime="text/csv"
+        )
+
+        summary_text = (
+            "Dashboard summary\n"
+            f"- Estimated value for current scenario: ${pred_val:,.0f} CAD\n"
+            f"- Current inputs: {dist_beach:.1f} km from beach, {prop_age} years old, {prop_type}, {ann_precip} mm annual precipitation\n"
+            f"- Filtered export rows: {len(export_df):,}\n"
+            "- Deliverables can include interactive dashboard, deployed link, source code, CSV export, and PDF summary.\n"
+        )
+        st.text_area("Summary preview", summary_text, height=150)
+        st.download_button(
+            "Download summary text",
+            data=summary_text.encode("utf-8"),
+            file_name="dashboard_summary.txt",
+            mime="text/plain"
+        )
+
+        pdf_buffer = BytesIO()
+        with PdfPages(pdf_buffer) as pdf:
+            fig_pdf, ax = plt.subplots(figsize=(8.5, 11))
+            ax.axis("off")
+            ax.text(0.08, 0.92, "1-Page Dashboard Summary", fontsize=20, fontweight="bold")
+            ax.text(0.08, 0.84, f"Estimated value: ${pred_val:,.0f} CAD", fontsize=14)
+            ax.text(0.08, 0.78, "Based on location, building age, property type & climate factors.", fontsize=11)
+            ax.text(0.08, 0.68, "Current scenario", fontsize=13, fontweight="bold")
+            ax.text(0.1, 0.62, f"Distance to beach: {dist_beach:.1f} km", fontsize=11)
+            ax.text(0.1, 0.57, f"Property age: {prop_age} years", fontsize=11)
+            ax.text(0.1, 0.52, f"Property type: {prop_type}", fontsize=11)
+            ax.text(0.1, 0.47, f"Annual precipitation: {ann_precip} mm", fontsize=11)
+            ax.text(0.08, 0.36, "Client deliverables", fontsize=13, fontweight="bold")
+            ax.text(0.1, 0.30, "Interactive dashboard, deployed link, source code, CSV export, PDF summary.", fontsize=11)
+            pdf.savefig(fig_pdf, bbox_inches="tight")
+            plt.close(fig_pdf)
+        pdf_buffer.seek(0)
+        st.download_button(
+            "Generate 1-page PDF summary",
+            data=pdf_buffer,
+            file_name="dashboard_summary.pdf",
+            mime="application/pdf"
+        )
+
+st.markdown(
+    """
+    <div class="method-footer">
+        <strong>Data:</strong> City of Vancouver Open Data · Environment Canada (YVR)
+        &nbsp;|&nbsp; <strong>Method:</strong> Multiple linear regression, 1.5×IQR outlier removal
+        &nbsp;|&nbsp; <strong>Note:</strong> Assessed values ≠ transaction prices. For illustration only.
+        &nbsp;|&nbsp; <strong>GitHub:</strong>
+        <a href="https://github.com/LIUYOUCecilia/vancouver-housing-analysis" target="_blank">source</a>
+        · Built by Cecilia Liu, UBC Mathematics
+    </div>
+    """,
+    unsafe_allow_html=True
+)
