@@ -14,7 +14,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 # Set page config for a premium wide-screen look
 st.set_page_config(
-    page_title="Interactive Analytics Dashboard",
+    page_title="Vancouver Property & Climate Dashboard",
     page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -491,29 +491,29 @@ except Exception as e:
     st.stop()
 
 # Header Section
-st.markdown('<div class="main-title">Interactive Analytics Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Streamlit + Plotly | Statistical modeling | Deployed & shareable</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">Vancouver Property & Climate Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Interactive charts, filters, and regression diagnostics built with Streamlit and Plotly.</div>', unsafe_allow_html=True)
 st.caption("Sample use case: Vancouver property & climate data")
 st.markdown(
     """
     <div class="value-points">
-        ✓ Upload your CSV → interactive charts & filters<br>
-        ✓ Statistical insights, not just pretty graphs<br>
-        ✓ Deployed link + source code included
+        ✓ Explore uploaded data with filters and charts<br>
+        ✓ Compare trends with basic statistical checks<br>
+        ✓ Review the data, model output, and exports in one place
     </div>
     """,
     unsafe_allow_html=True,
 )
 cta_col1, cta_col2, _ = st.columns([0.16, 0.14, 0.70])
 with cta_col1:
-    st.link_button("Order on Fiverr →", "https://www.fiverr.com/")
+    st.link_button("Contact →", "https://www.fiverr.com/")
 with cta_col2:
     st.link_button("View GitHub →", "https://github.com/LIUYOUCecilia/vancouver-housing-analysis")
 st.markdown(
     """
     <div class="demo-disclaimer">
-        <strong>This is a portfolio demo.</strong> Built with public Vancouver open data to showcase dashboard capabilities.
-        <strong>Your project can use any CSV dataset</strong> (sales, marketing, operations, research).
+        <strong>Example project.</strong> This page uses public Vancouver data as a sample dataset.
+        The same structure can work with sales, marketing, operations, or research CSV files.
     </div>
     """,
     unsafe_allow_html=True,
@@ -523,18 +523,15 @@ st.markdown(
     <div class="capability-grid">
         <div class="capability-card">
             <h4>Small business</h4>
-            <p><strong>Demo capability:</strong> filters, KPI cards, trend charts</p>
-            <p><strong>You get:</strong> sales or marketing dashboard</p>
+            <p>Filters, KPI cards, and trend charts for day-to-day reporting.</p>
         </div>
         <div class="capability-card">
             <h4>Researcher</h4>
-            <p><strong>Demo capability:</strong> VIF, residual plot, regression line</p>
-            <p><strong>You get:</strong> statistical report + interactive explorer</p>
+            <p>Regression diagnostics, residual checks, and an interactive explorer.</p>
         </div>
         <div class="capability-card">
             <h4>Real estate / local biz</h4>
-            <p><strong>Demo capability:</strong> area comparison and local signals</p>
-            <p><strong>You get:</strong> geo-filtered analytics</p>
+            <p>Area-level comparisons and location-aware filtering.</p>
         </div>
     </div>
     """,
@@ -584,9 +581,9 @@ st.sidebar.markdown(
 st.sidebar.markdown(
     """
     <div class="trust-box">
-        Based in Vancouver (PST) — North America friendly hours<br>
+        Based in Vancouver (PST)<br>
         Incoming UBC Mathematics · AP Statistics<br>
-        ⭐ Available for custom dashboards on Fiverr
+        Data dashboards, reports, and model explainers
     </div>
     """,
     unsafe_allow_html=True
@@ -622,7 +619,7 @@ with col_left:
         """
         <div class="assessed-value-note">
             <strong>Important:</strong> this demo estimates assessed value, not live market price or MLS transaction value.
-            It is for portfolio illustration and dashboard capability review.
+            It is meant to show the dashboard workflow, not provide property advice.
         </div>
         """,
         unsafe_allow_html=True
@@ -1071,7 +1068,7 @@ with col_right:
                 with val_cols[2]:
                     st.metric("Valuation Variance", f"${diff:+,.0f} CAD", f"{pct_diff:+.1f}%")
                     
-                st.write(f"*Note: The model prediction projects the assessed valuation based on Vancouver's annual precipitation baseline ({live_precip:.1f} mm).*")
+                st.write(f"*Uses the dataset's average annual precipitation as the climate input ({live_precip:.1f} mm).*")
             else:
                 st.info("No recently assessed properties matched the neighborhood spatial coordinates. Live feed is currently standby.")
         else:
@@ -1079,9 +1076,9 @@ with col_right:
 
     with tab5:
         st.markdown("#### Upload Your CSV")
-        st.write("This is exactly what I build for clients — your data, your filters, your deployed link.")
+        st.write("Upload a CSV to see how the same dashboard structure adapts to a different dataset.")
 
-        sample_client_df = pd.DataFrame({
+        sample_upload_df = pd.DataFrame({
             "month": ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
             "channel": ["Search", "Social", "Email", "Search", "Social", "Email", "Search", "Social"],
             "campaign": ["Spring A", "Spring A", "Spring A", "Summer B", "Summer B", "Summer B", "Fall C", "Fall C"],
@@ -1091,13 +1088,13 @@ with col_right:
         })
         st.download_button(
             "Download sample CSV",
-            data=sample_client_df.to_csv(index=False).encode("utf-8"),
-            file_name="sample_client_dashboard_data.csv",
+            data=sample_upload_df.to_csv(index=False).encode("utf-8"),
+            file_name="sample_dashboard_data.csv",
             mime="text/csv"
         )
 
-        uploaded_client_file = st.file_uploader("Upload your CSV to preview the client workflow", type=["csv"])
-        explore_df = pd.read_csv(uploaded_client_file) if uploaded_client_file else sample_client_df
+        uploaded_data_file = st.file_uploader("Upload a CSV", type=["csv"])
+        explore_df = pd.read_csv(uploaded_data_file) if uploaded_data_file else sample_upload_df
 
         st.dataframe(explore_df.head(20), use_container_width=True, hide_index=True)
 
@@ -1175,11 +1172,11 @@ with col_right:
         )
 
         summary_text = (
-            "Dashboard summary\n"
+            "Summary\n"
             f"- Estimated value for current scenario: ${pred_val:,.0f} CAD\n"
             f"- Current inputs: {dist_beach:.1f} km from beach, {prop_age} years old, {prop_type}, {ann_precip} mm annual precipitation\n"
             f"- Filtered export rows: {len(export_df):,}\n"
-            "- Deliverables can include interactive dashboard, deployed link, source code, CSV export, and PDF summary.\n"
+            "- Available exports: filtered CSV, text summary, and one-page PDF.\n"
         )
         st.text_area("Summary preview", summary_text, height=150)
         st.download_button(
@@ -1193,7 +1190,7 @@ with col_right:
         with PdfPages(pdf_buffer) as pdf:
             fig_pdf, ax = plt.subplots(figsize=(8.5, 11))
             ax.axis("off")
-            ax.text(0.08, 0.92, "1-Page Dashboard Summary", fontsize=20, fontweight="bold")
+            ax.text(0.08, 0.92, "Dashboard Summary", fontsize=20, fontweight="bold")
             ax.text(0.08, 0.84, f"Estimated value: ${pred_val:,.0f} CAD", fontsize=14)
             ax.text(0.08, 0.78, "Based on location, building age, property type & climate factors.", fontsize=11)
             ax.text(0.08, 0.68, "Current scenario", fontsize=13, fontweight="bold")
@@ -1201,13 +1198,13 @@ with col_right:
             ax.text(0.1, 0.57, f"Property age: {prop_age} years", fontsize=11)
             ax.text(0.1, 0.52, f"Property type: {prop_type}", fontsize=11)
             ax.text(0.1, 0.47, f"Annual precipitation: {ann_precip} mm", fontsize=11)
-            ax.text(0.08, 0.36, "Client deliverables", fontsize=13, fontweight="bold")
-            ax.text(0.1, 0.30, "Interactive dashboard, deployed link, source code, CSV export, PDF summary.", fontsize=11)
+            ax.text(0.08, 0.36, "Files", fontsize=13, fontweight="bold")
+            ax.text(0.1, 0.30, "Filtered CSV, text summary, and PDF summary.", fontsize=11)
             pdf.savefig(fig_pdf, bbox_inches="tight")
             plt.close(fig_pdf)
         pdf_buffer.seek(0)
         st.download_button(
-            "Generate 1-page PDF summary",
+            "Download 1-page PDF summary",
             data=pdf_buffer,
             file_name="dashboard_summary.pdf",
             mime="application/pdf"
